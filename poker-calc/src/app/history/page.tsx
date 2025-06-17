@@ -163,7 +163,7 @@ export default function GameHistoryPage() {
     const fetchGames = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/games');
+            const response = await fetch('/api/games?limit=1000'); // Fetch up to 1000 games
             
             if (!response.ok) {
                 throw new Error('Failed to fetch games');
