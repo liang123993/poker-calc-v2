@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { Player } from "@/types/player";
 import Header from "@/components/Header";
-import { Plus, Trash2, Calculator } from "lucide-react"
+import { Plus, Trash2, Calculator } from "lucide-react";
+import PayoutSummaryModal from "@/components/PayoutSummarymodal";
+
 
 export default function PayoutPage() {
-    // store players in array
+
     const [players, setPlayers] = useState<Player[]>([]); // ['liang', 'michael', ...]
+    const [showSummary, setShowSummary] = useState(false);
 
     // add player
     const addPlayer = () => {
@@ -23,7 +26,7 @@ export default function PayoutPage() {
 
     // remove player
     const removePlayer = (id: string) => {
-        setPlayers(players.filter(player => player.id !== id))
+        setPlayers(players.filter((player) => player.id !== id));
     };
 
     // update details
@@ -52,18 +55,20 @@ export default function PayoutPage() {
 
     // calcs every players net summed tgt
     const getTotalNet = () => {
-        return players.reduce((sum, player) => sum + player.net, 0)
-    }
+        return players.reduce((sum, player) => sum + player.net, 0);
+    };
 
     const isGameBalanced = () => {
-        return Math.abs(getTotalNet()) < 0.01
-    }
+        return Math.abs(getTotalNet()) < 0.01;
+    };
 
     // Check if we can calculate (at least 2 players, all have names, game is balanced)
     const canCalculate = () => {
-        return players.length >= 2 && 
-            players.every(p => p.name.trim() !== '') && 
-            isGameBalanced();
+        return (
+            players.length >= 2 &&
+            players.every((p) => p.name.trim() !== "") &&
+            isGameBalanced()
+        );
     };
 
     // Format currency display
@@ -77,9 +82,17 @@ export default function PayoutPage() {
         if (Math.abs(totalNet) < 0.01) {
             return <span className="text-green-400">Balanced ✓</span>;
         } else if (totalNet > 0) {
-            return <span className="text-red-400">Over by {formatCurrency(totalNet)}</span>;
+            return (
+                <span className="text-red-400">
+                    Over by {formatCurrency(totalNet)}
+                </span>
+            );
         } else {
-            return <span className="text-red-400">Missing {formatCurrency(totalNet)}</span>;
+            return (
+                <span className="text-red-400">
+                    Missing {formatCurrency(totalNet)}
+                </span>
+            );
         }
     };
 
@@ -87,20 +100,21 @@ export default function PayoutPage() {
     const handleCalculate = () => {
         if (!canCalculate()) {
             if (players.length < 2) {
-                alert('Please add at least 2 players.');
+                alert("Please add at least 2 players.");
                 return;
             }
-            if (players.some(p => p.name.trim() === '')) {
-                alert('All players must have names.');
+            if (players.some((p) => p.name.trim() === "")) {
+                alert("All players must have names.");
                 return;
             }
             if (!isGameBalanced()) {
-                alert(`Game is not balanced. Total net: ${formatCurrency(getTotalNet())}`);
+                alert(
+                    `Game is not balanced. Total net: ${formatCurrency(getTotalNet())}`
+                );
                 return;
             }
         }
-        // TODO: Show payout summary modal
-        alert('Calculate button clicked! (Modal will be added next)');
+        setShowSummary(true)
     };
 
     return (
@@ -223,7 +237,6 @@ export default function PayoutPage() {
                                     </td>
                                 </tr>
                             ))}
-
                         </tbody>
                     </table>
                 </div>
@@ -242,15 +255,20 @@ export default function PayoutPage() {
                     {/* Total Net Display */}
                     <div className="text-right">
                         <div className="text-lg font-semibold mb-1">
-                            Total Net: <span className={`${
-                                getTotalNet() > 0 ? 'text-red-400' : 
-                                getTotalNet() < 0 ? 'text-red-400' : 
-                                'text-green-400'
-                            }`}>{formatCurrency(getTotalNet())}</span>
+                            Total Net:{" "}
+                            <span
+                                className={`${
+                                    getTotalNet() > 0
+                                        ? "text-red-400"
+                                        : getTotalNet() < 0
+                                          ? "text-red-400"
+                                          : "text-green-400"
+                                }`}
+                            >
+                                {formatCurrency(getTotalNet())}
+                            </span>
                         </div>
-                        <div className="text-sm">
-                            {getBalanceMessage()}
-                        </div>
+                        <div className="text-sm">{getBalanceMessage()}</div>
                     </div>
                 </div>
 
@@ -261,8 +279,8 @@ export default function PayoutPage() {
                         disabled={!canCalculate()}
                         className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
                             canCalculate()
-                                ? 'bg-custom-primary hover:opacity-80 text-white'
-                                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                ? "bg-custom-primary hover:opacity-80 text-white"
+                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
                         }`}
                     >
                         <Calculator size={20} />
@@ -270,6 +288,13 @@ export default function PayoutPage() {
                     </button>
                 </div>
             </main>
+
+            <PayoutSummaryModal
+                isOpen={showSummary}
+                onClose={() => setShowSummary(false)}
+                players={players}
+                onSubmit={() => alert('Submit functionality coming next!')} 
+            />
         </div>
     );
 }
