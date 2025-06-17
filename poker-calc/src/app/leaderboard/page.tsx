@@ -81,7 +81,7 @@ export default function LeaderboardPage() {
         return (
             <div className="min-h-screen bg-custom-background text-custom-primary">
                 <Header currentPage="leaderboard" />
-                <main className="px-6 py-8">
+                <main className="px-6 py-2">
                     <div className="flex justify-center items-center h-64">
                         <div className="text-custom-secondary">Loading leaderboard...</div>
                     </div>
@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
         return (
             <div className="min-h-screen bg-custom-background text-custom-primary">
                 <Header currentPage="leaderboard" />
-                <main className="px-6 py-8">
+                <main className="px-6 py-2">
                     <div className="flex justify-center items-center h-64">
                         <div className="text-red-400">Error: {error}</div>
                     </div>
@@ -106,7 +106,7 @@ export default function LeaderboardPage() {
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
             <Header currentPage="leaderboard" />
-            <main className="px-6 py-8">
+            <main className="px-6 py-2">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-custom-primary">
                         Leaderboard
@@ -120,7 +120,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 {leaderboard.length === 0 ? (
-                    <div className="text-center py-12">
+                    <div className="text-center py-22">
                         <div className="text-custom-secondary text-lg mb-4">
                             No players on the leaderboard yet
                         </div>
@@ -140,19 +140,19 @@ export default function LeaderboardPage() {
                             </colgroup>
                             <thead className="bg-custom-surface">
                                 <tr>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">
+                                    <th className="text-center py-2 px-4 font-medium text-custom-primary">
                                         Rank Change
                                     </th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">
+                                    <th className="text-center py-2 px-4 font-medium text-custom-primary">
                                         Rank
                                     </th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">
+                                    <th className="text-center py-2 px-4 font-medium text-custom-primary">
                                         Player
                                     </th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">
+                                    <th className="text-center py-2 px-4 font-medium text-custom-primary">
                                         Games Played
                                     </th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">
+                                    <th className="text-center py-2 px-4 font-medium text-custom-primary">
                                         Total Profit/Loss
                                     </th>
                                 </tr>
@@ -165,23 +165,23 @@ export default function LeaderboardPage() {
                                             index % 2 === 1 ? 'bg-custom-surface-alt' : ''
                                         }`}
                                     >
-                                        <td className="py-4 px-4 text-center">
+                                        <td className="py-2 px-4 text-center">
                                             {getRankChangeIcon(player.rankChange, player.previousRank, player.rank)}
                                         </td>
-                                        <td className="py-4 px-4 text-center">
+                                        <td className="py-2 px-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 {getRankIcon(player.rank)}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-4 text-center">
+                                        <td className="py-2 px-4 text-center">
                                             <div className="text-custom-primary">
                                                 {player.playerName}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-4 text-center text-custom-primary">
+                                        <td className="py-2 px-4 text-center text-custom-primary">
                                             {player.gamesPlayed}
                                         </td>
-                                        <td className={`py-4 px-4 text-center text-lg ${getProfitColorClass(player.totalProfit)}`}>
+                                        <td className={`py-2 px-4 text-center text-lg ${getProfitColorClass(player.totalProfit)}`}>
                                             {player.totalProfit >= 0 ? '+' : '-'}{formatCurrency(player.totalProfit)}
                                         </td>
                                     </tr>
