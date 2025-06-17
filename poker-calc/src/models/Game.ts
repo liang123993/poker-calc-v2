@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { ST } from "next/dist/shared/lib/utils";
-import { title } from "process";
 
 const GameSchema = new mongoose.Schema(
     {
