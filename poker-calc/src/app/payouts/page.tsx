@@ -5,12 +5,14 @@ import { Player } from "@/types/player";
 import Header from "@/components/Header";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import PayoutSummaryModal from "@/components/PayoutSummaryModal";
+import PasswordModal from "@/components/PasswordModal";
 
 
 export default function PayoutPage() {
 
     const [players, setPlayers] = useState<Player[]>([]); // ['liang', 'michael', ...]
     const [showSummary, setShowSummary] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     // add player
     const addPlayer = () => {
@@ -295,10 +297,23 @@ export default function PayoutPage() {
                 players={players}
                 onSubmit={(gameTitle) => {
                     console.log('Game submitted:', gameTitle);
-                    alert(`Game "${gameTitle}" submitted! (Password modal coming next)`);
                     setShowSummary(false);
+                    setShowPasswordModal(true)
                 }}
             />
+
+            <PasswordModal
+                isOpen={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+                onSuccess={() => {
+                    setShowPasswordModal(false);
+                    alert('Game saved successfully!');
+                    // TODO: Save to database
+                    setPlayers([]); // Clear the form
+                }}
+                title="Confirm Submission"
+            />
+            
         </div>
     );
 }
