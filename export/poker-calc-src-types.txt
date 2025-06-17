@@ -1,3 +1,8 @@
+# poker-calc-src-types Files
+
+### poker-calc\src\types\player.ts
+
+```ts
 export interface Player {
     id: string;
     name: string;
@@ -34,3 +39,4 @@ export interface GameResult {
   totalAmount: number;
   playerCount: number;
 }
+```
