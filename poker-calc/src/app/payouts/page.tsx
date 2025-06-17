@@ -55,6 +55,54 @@ export default function PayoutPage() {
         return players.reduce((sum, player) => sum + player.net, 0)
     }
 
+    const isGameBalanced = () => {
+        return Math.abs(getTotalNet()) < 0.01
+    }
+
+    // Check if we can calculate (at least 2 players, all have names, game is balanced)
+    const canCalculate = () => {
+        return players.length >= 2 && 
+            players.every(p => p.name.trim() !== '') && 
+            isGameBalanced();
+    };
+
+    // Format currency display
+    const formatCurrency = (amount: number) => {
+        return `$${Math.abs(amount).toFixed(2)}`;
+    };
+
+    // Get balance message
+    const getBalanceMessage = () => {
+        const totalNet = getTotalNet();
+        if (Math.abs(totalNet) < 0.01) {
+            return <span className="text-green-400">Balanced ✓</span>;
+        } else if (totalNet > 0) {
+            return <span className="text-red-400">Over by {formatCurrency(totalNet)}</span>;
+        } else {
+            return <span className="text-red-400">Missing {formatCurrency(totalNet)}</span>;
+        }
+    };
+
+    // Handle calculate button click
+    const handleCalculate = () => {
+        if (!canCalculate()) {
+            if (players.length < 2) {
+                alert('Please add at least 2 players.');
+                return;
+            }
+            if (players.some(p => p.name.trim() === '')) {
+                alert('All players must have names.');
+                return;
+            }
+            if (!isGameBalanced()) {
+                alert(`Game is not balanced. Total net: ${formatCurrency(getTotalNet())}`);
+                return;
+            }
+        }
+        // TODO: Show payout summary modal
+        alert('Calculate button clicked! (Modal will be added next)');
+    };
+
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
             {/* header */}
@@ -180,10 +228,9 @@ export default function PayoutPage() {
                     </table>
                 </div>
 
-                {/* bottom action rows */}   
-                <div className="mb-6">
-
-                    {/* add player button */}
+                {/* Actions Row - Total and Buttons */}
+                <div className="flex justify-between items-center mb-6">
+                    {/* Add Player Button */}
                     <button
                         onClick={addPlayer}
                         className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors"
@@ -192,25 +239,36 @@ export default function PayoutPage() {
                         Add Player
                     </button>
 
-                    {/* total net */}
+                    {/* Total Net Display */}
                     <div className="text-right">
                         <div className="text-lg font-semibold mb-1">
                             Total Net: <span className={`${
-                                getTotalNet() < 0 ? 'text-red-400' :
-                                getTotalNet() > 0 ? 'text-red-400' :
-                                'text-green-400' :
-                            }`}>
-
-                            </span>
-
+                                getTotalNet() > 0 ? 'text-red-400' : 
+                                getTotalNet() < 0 ? 'text-red-400' : 
+                                'text-green-400'
+                            }`}>{formatCurrency(getTotalNet())}</span>
                         </div>
-                    </div>      
+                        <div className="text-sm">
+                            {getBalanceMessage()}
+                        </div>
+                    </div>
                 </div>
 
-                    {/* calculate button */}
-
-
-                    
+                {/* Calculate Button */}
+                <div className="flex justify-center">
+                    <button
+                        onClick={handleCalculate}
+                        disabled={!canCalculate()}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
+                            canCalculate()
+                                ? 'bg-custom-primary hover:opacity-80 text-white'
+                                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        }`}
+                    >
+                        <Calculator size={20} />
+                        Calculate
+                    </button>
+                </div>
             </main>
         </div>
     );
