@@ -1,12 +1,12 @@
 // src/components/PayoutSummaryModal.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Player } from '@/types/player';
 
 interface PayoutSummaryModalProps {
     isOpen: boolean;
     onClose: () => void;
     players: Player[];
-    onSubmit: () => void;
+    onSubmit: (gameTitle: string) => void;  // Updated to pass game title
 }
 
 export default function PayoutSummaryModal({ 
@@ -15,7 +15,18 @@ export default function PayoutSummaryModal({
     players, 
     onSubmit 
 }: PayoutSummaryModalProps) {
+    const [gameTitle, setGameTitle] = useState('');
+    
     if (!isOpen) return null;
+
+    const handleSubmit = () => {
+        if (!gameTitle.trim()) {
+            alert('Please enter a game title');
+            return;
+        }
+        onSubmit(gameTitle.trim());
+        setGameTitle(''); // Reset after submit
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -29,6 +40,21 @@ export default function PayoutSummaryModal({
                     >
                         ×
                     </button>
+                </div>
+                
+                {/* Game Title Input */}
+                <div className="mb-6 p-4 bg-custom-surface-alt rounded-lg border border-custom">
+                    <label className="block text-sm font-medium text-custom-primary mb-2">
+                        Game Title
+                    </label>
+                    <input
+                        type="text"
+                        value={gameTitle}
+                        onChange={(e) => setGameTitle(e.target.value)}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        placeholder="eg. Edwin's House - 69/69/69"
+                        required
+                    />
                 </div>
 
                 {/* Results Table */}
@@ -92,7 +118,7 @@ export default function PayoutSummaryModal({
                         Close
                     </button>
                     <button
-                        onClick={onSubmit}
+                        onClick={handleSubmit}  // Changed from onSubmit to handleSubmit
                         className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors"
                     >
                         Submit Game

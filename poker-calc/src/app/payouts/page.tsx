@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Player } from "@/types/player";
 import Header from "@/components/Header";
 import { Plus, Trash2, Calculator } from "lucide-react";
-import PayoutSummaryModal from "@/components/PayoutSummarymodal";
+import PayoutSummaryModal from "@/components/PayoutSummaryModal";
 
 
 export default function PayoutPage() {
@@ -293,7 +293,11 @@ export default function PayoutPage() {
                 isOpen={showSummary}
                 onClose={() => setShowSummary(false)}
                 players={players}
-                onSubmit={() => alert('Submit functionality coming next!')} 
+                onSubmit={(gameTitle) => {
+                    console.log('Game submitted:', gameTitle);
+                    alert(`Game "${gameTitle}" submitted! (Password modal coming next)`);
+                    setShowSummary(false);
+                }}
             />
         </div>
     );
