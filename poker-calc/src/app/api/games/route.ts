@@ -47,6 +47,14 @@ export async function GET(req: NextRequest) {
     }
 }
 
+// Helper function to normalize player names (trim and proper case)
+function normalizePlayerName(name: string): string {
+    return name.trim()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
 // POST, create new game and update leaderboard
 export async function POST(req: NextRequest) {
     try {
@@ -61,8 +69,14 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
+        // Normalize player names to prevent case-sensitive duplicates
+        const normalizedPlayers = players.map(player => ({
+            ...player,
+            name: normalizePlayerName(player.name)
+        }));
+
         // Validate that game is balanced
-        const totalNet = players.reduce((sum: number, player: any) => sum + player.net, 0);
+        const totalNet = normalizedPlayers.reduce((sum: number, player: any) => sum + player.net, 0);
         if (Math.abs(totalNet) > 0.01) {
             return NextResponse.json({ 
                 error: "Game is not balanced" 
@@ -70,8 +84,8 @@ export async function POST(req: NextRequest) {
         }
 
         // Calculate game totals
-        const totalAmount = players.reduce((sum: number, player: any) => sum + player.buyIn, 0);
-        const playerCount = players.length;
+        const totalAmount = normalizedPlayers.reduce((sum: number, player: any) => sum + player.buyIn, 0);
+        const playerCount = normalizedPlayers.length;
         
         // Create the game
         const newGame = await Game.create({
@@ -83,7 +97,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Sort players by net profit (highest first) and add rank
-        const rankedPlayers = players
+        const rankedPlayers = normalizedPlayers
             .sort((a: any, b: any) => b.net - a.net)
             .map((player: any, index: number) => ({
                 name: player.name,
@@ -112,17 +126,19 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// Helper function to update leaderboard (simplified)
+// Helper function to update leaderboard (with case-insensitive lookup)
 async function updateLeaderboard(players: any[]) {
     for (const player of players) {
         try {
-            // Get current leaderboard entry or create new one
-            let leaderboardEntry = await Leaderboard.findOne({ playerName: player.name });
+            // Use case-insensitive lookup for existing leaderboard entry
+            let leaderboardEntry = await Leaderboard.findOne({ 
+                playerName: { $regex: new RegExp(`^${player.name}$`, 'i') }
+            });
             
             if (!leaderboardEntry) {
-                // New player
+                // New player - create entry with normalized name
                 leaderboardEntry = await Leaderboard.create({
-                    playerName: player.name,
+                    playerName: player.name, // Already normalized
                     totalProfit: player.net,
                     gamesPlayed: 1,
                     currentRank: 999999, // Will be updated later
@@ -130,7 +146,10 @@ async function updateLeaderboard(players: any[]) {
                     rankChange: 'new'
                 });
             } else {
-                // Existing player - update stats
+                // Existing player - update stats and normalize the name if needed
+                if (leaderboardEntry.playerName !== player.name) {
+                    leaderboardEntry.playerName = player.name; // Update to normalized version
+                }
                 leaderboardEntry.totalProfit += player.net;
                 leaderboardEntry.gamesPlayed += 1;
                 await leaderboardEntry.save();

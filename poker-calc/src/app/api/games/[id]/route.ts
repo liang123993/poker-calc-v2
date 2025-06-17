@@ -59,7 +59,10 @@ export async function DELETE(
 async function updateLeaderboardAfterDeletion(players: any[]) {
     for (const player of players) {
         try {
-            const leaderboardEntry = await Leaderboard.findOne({ playerName: player.name });
+            // Use case-insensitive lookup
+            const leaderboardEntry = await Leaderboard.findOne({ 
+                playerName: { $regex: new RegExp(`^${player.name}$`, 'i') }
+            });
             
             if (leaderboardEntry) {
                 // Subtract this game's profit and decrement games played
