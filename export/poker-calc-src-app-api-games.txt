@@ -1,3 +1,8 @@
+# poker-calc-src-app-api-games Files
+
+### poker-calc\src\app\api\games\route.ts
+
+```ts
 // src/app/api/games/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
@@ -178,3 +183,4 @@ async function updateAllRanks() {
         console.error('Error updating ranks:', error);
     }
 }
+```

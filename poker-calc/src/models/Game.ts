@@ -22,11 +22,11 @@ const GameSchema = new mongoose.Schema(
             required: true,
             default: true,
         },
-        transfers: {
+        transfers: [{
             from: { type: String, required: true },
             to: { type: String, required: true },
             amount: { type: Number, required: true },
-        },
+        }],
     },
     {
         timestamps: true, // Adds createdAt and updatedAt

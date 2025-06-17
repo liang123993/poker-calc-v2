@@ -1,3 +1,8 @@
+# poker-calc-src-app-api-leaderboard Files
+
+### poker-calc\src\app\api\leaderboard\route.ts
+
+```ts
 // src/app/api/leaderboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
@@ -40,3 +45,4 @@ export async function GET(req: NextRequest) {
         }, { status: 500 });
     }
 }
+```

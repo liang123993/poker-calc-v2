@@ -287,4 +287,155 @@ export default function PayoutPage() {
                                         {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
                                             <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
                                                 style={{
-                                                    top:
+                                                    top: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().bottom + window.scrollY + 4}px`,
+                                                    left: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().left + window.scrollX}px`,
+                                                    width: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().width}px`
+                                                }}>
+                                                {getFilteredNames(player.id).map((name, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() => handleNameSelect(player.id, name)}
+                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface-alt focus:bg-custom-surface-alt focus:outline-none transition-colors cursor-pointer"
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.buyIn || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "buyIn",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.cashOut || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "cashOut",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <span
+                                            className={`font-semibold ${
+                                                player.net > 0
+                                                    ? "text-green-400"
+                                                    : player.net < 0
+                                                      ? "text-red-400"
+                                                      : "text-gray-400"
+                                            }`}
+                                        >
+                                            ${player.net.toFixed(2)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <button
+                                            onClick={() => removePlayer(player.id)}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
+                                            title="Delete player"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex justify-between items-center mb-6">
+                    <button
+                        onClick={addPlayer}
+                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                        <Plus size={16} />
+                        Add Player
+                    </button>
+
+                    <div className="text-right">
+                        <div className="text-lg font-semibold mb-1">
+                            Total Net:{" "}
+                            <span
+                                className={`${
+                                    getTotalNet() > 0
+                                        ? "text-red-400"
+                                        : getTotalNet() < 0
+                                          ? "text-red-400"
+                                          : "text-green-400"
+                                }`}
+                            >
+                                {formatCurrency(getTotalNet())}
+                            </span>
+                        </div>
+                        <div className="text-sm">{getBalanceMessage()}</div>
+                    </div>
+                </div>
+
+                <div className="flex justify-center">
+                    <button
+                        onClick={handleCalculate}
+                        disabled={!canCalculate() || isSubmitting}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
+                            canCalculate() && !isSubmitting
+                                ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
+                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                        <Calculator size={20} />
+                        {isSubmitting ? "Saving..." : "Calculate"}
+                    </button>
+                </div>
+            </main>
+
+            <PayoutSummaryModal
+                isOpen={showSummary}
+                onClose={() => setShowSummary(false)}
+                players={players}
+                onSubmit={(gameTitle) => {
+                    setPendingGameTitle(gameTitle);
+                    setShowPasswordModal(true);
+                }}
+            />
+
+            <PasswordModal
+                isOpen={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+                onSuccess={async () => {
+                    setShowPasswordModal(false);
+                    try {
+                        await saveGameToDatabase(pendingGameTitle);
+                        setShowSummary(false);
+                        alert('Game saved successfully!');
+                        setPlayers([]); // Clear the form
+                        setPendingGameTitle("");
+                    } catch (error) {
+                        alert('Failed to save game. Please try again.');
+                        setShowSummary(true); // Keep summary open on error
+                    }
+                }}
+                title="Confirm Submission"
+            />
+        </div>
+    );
+}
