@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Player } from "@/types/player"
+import { Player } from "@/types/player";
 import Header from "@/components/Header";
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react";
 
 export default function PayoutPage() {
     // store players in array
@@ -11,30 +11,40 @@ export default function PayoutPage() {
 
     const addPlayer = () => {
         const newPlayer: Player = {
-            id: Date.now().toString(),  // Simple ID using timestamp
+            id: Date.now().toString(), // Simple ID using timestamp
             name: "",
             buyIn: 0,
             cashOut: 0,
             net: 0,
-        }
-        setPlayers([...players, newPlayer])
-        console.log(players)
-    }
+        };
+        setPlayers([...players, newPlayer]);
+        console.log(players);
+    };
 
-    const updatePlayer = (id: string, field: keyof Player, value: string | number) => {
-        setPlayers(players.map(player => {
-            if (player.id == id) {
-                const updated = { ...player, [field]: value}
+    const removePlayer = (id: string) => {
+        setPlayers(players.filter(player => player.id !== id))
+    };
 
-                if (field === 'buyIn' || field === 'cashOut') {
-                    updated.net = updated.cashOut - updated.buyIn
+    const updatePlayer = (
+        id: string,
+        field: keyof Player,
+        value: string | number
+    ) => {
+        setPlayers(
+            players.map((player) => {
+                if (player.id == id) {
+                    const updated = { ...player, [field]: value };
+
+                    if (field === "buyIn" || field === "cashOut") {
+                        updated.net = updated.cashOut - updated.buyIn;
+                    }
+
+                    return updated;
                 }
-
-                return updated
-            }
-            return player
-        }))
-    }
+                return player;
+            })
+        );
+    };
 
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
@@ -51,36 +61,60 @@ export default function PayoutPage() {
                         {/* table head row */}
                         <thead className="bg-custom-surface-alt">
                             <tr>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Player Name</th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Buy-in</th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Cashout</th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Net Gain/Loss</th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Actions</th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Player Name
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Buy-in
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Cashout
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Net Gain/Loss
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
 
                         {/* table body */}
                         <tbody>
-                            {players.map(player => (
+                            {players.map((player) => (
                                 // for every player create a new row
                                 <tr key={player.id}>
                                     {/* name */}
                                     <td className="py-3 px-4">
-                                        <input 
-                                            type="text" 
-                                            value = {player.name}
-                                            onChange={(e) => updatePlayer(player.id, "name", e.target.value)}
+                                        <input
+                                            type="text"
+                                            value={player.name}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "name",
+                                                    e.target.value
+                                                )
+                                            }
                                             className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
                                             placeholder="Enter name"
                                         />
                                     </td>
                                     {/* buy in */}
                                     <td className="py-3 px-4">
-                                        <input 
+                                        <input
                                             type="number"
                                             step="0.01"
-                                            value={player.buyIn || ''}
-                                            onChange={(e) => updatePlayer(player.id, 'buyIn', parseFloat(e.target.value) || 0)}
+                                            value={player.buyIn || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "buyIn",
+                                                    parseFloat(
+                                                        e.target.value
+                                                    ) || 0
+                                                )
+                                            }
                                             className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
                                             placeholder="0"
                                         />
@@ -90,31 +124,45 @@ export default function PayoutPage() {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            value={player.cashOut || ''}
-                                            onChange={(e) => updatePlayer(player.id, 'cashOut', parseFloat(e.target.value) || 0)}
+                                            value={player.cashOut || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "cashOut",
+                                                    parseFloat(
+                                                        e.target.value
+                                                    ) || 0
+                                                )
+                                            }
                                             className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
                                             placeholder="0"
-                                        />                                      
+                                        />
                                     </td>
                                     {/* net */}
                                     <td className="py-3 px-4 text-center">
-                                        <span className={`font-semibold ${
-                                            player.net > 0 ? 'text-green-400' : 
-                                            player.net < 0 ? 'text-red-400' : 
-                                            'text-gray-400'
-                                        }`}>
+                                        <span
+                                            className={`font-semibold ${
+                                                player.net > 0
+                                                    ? "text-green-400"
+                                                    : player.net < 0
+                                                      ? "text-red-400"
+                                                      : "text-gray-400"
+                                            }`}
+                                        >
                                             ${player.net.toFixed(2)}
-                                        </span>                                 
+                                        </span>
                                     </td>
                                     {/* actions */}
                                     <td className="py-3 px-4 text-center">
                                         <button
-                                            onClick={() => removePlayer(player.id)}
+                                            onClick={() =>
+                                                removePlayer(player.id)
+                                            }
                                             className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors"
                                             title="Delete player"
                                         >
                                             <Trash2 size={16} />
-                                        </button>                                       
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -128,10 +176,10 @@ export default function PayoutPage() {
                         onClick={addPlayer}
                         className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors"
                     >
-                        <Plus size={16} />Add Player
+                        <Plus size={16} />
+                        Add Player
                     </button>
                 </div>
-
             </main>
         </div>
     );
