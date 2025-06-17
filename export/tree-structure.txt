@@ -6,6 +6,14 @@
     └── src
         ├── app
         │   ├── api
+        │   │   ├── debug-test
+        │   │   │   ├── route.ts
+        │   │   ├── games
+        │   │   │   ├── route.ts
+        │   │   ├── games-isolated
+        │   │   │   ├── route.ts
+        │   │   ├── leaderboard
+        │   │   │   ├── route.ts
         │   │   ├── test-player
         │   │   │   └── route.ts
         │   ├── layout.tsx
@@ -20,6 +28,8 @@
         ├── lib
         │   ├── mongoose.ts
         ├── models
+        │   ├── Game.ts
+        │   ├── Leaderboard.ts
         │   ├── Player.ts
         ├── types
         │   └── player.ts

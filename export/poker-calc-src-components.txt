@@ -106,13 +106,13 @@ export default function PasswordModal({
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors"
+                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors"
+                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer"
                         >
                             Submit
                         </button>
@@ -214,7 +214,7 @@ export default function PayoutSummaryModal({
                     <h3 className="text-2xl font-bold text-custom-primary">Payout Summary</h3>
                     <button 
                         onClick={onClose}
-                        className="text-custom-secondary hover:text-custom-primary text-2xl"
+                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
                     >
                         ×
                     </button>
@@ -294,13 +294,13 @@ export default function PayoutSummaryModal({
                 <div className="flex justify-center gap-4">
                     <button
                         onClick={onClose}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors"
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
                     >
                         Close
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors"
+                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors cursor-pointer"
                     >
                         Submit Game
                     </button>

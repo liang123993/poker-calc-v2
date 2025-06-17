@@ -1,0 +1,180 @@
+// src/app/api/games/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongoose";
+import Game from "@/models/Game";
+import Player from "@/models/Player";
+import Leaderboard from "@/models/Leaderboard";
+
+// GET, fetch all games
+export async function GET(req: NextRequest) {
+    try {
+        await dbConnect() // connect to mongoDB
+
+        const url = new URL(req.url)
+        const page = parseInt(url.searchParams.get('page') || '1'); // which page of results
+        const limit = parseInt(url.searchParams.get('limit') || '10'); // how many games per page
+        const search = url.searchParams.get('search') || ''; // search item
+
+        const skip = (page - 1) * limit;
+        
+        // Build search query
+        let searchQuery = {};
+        if (search) {
+            searchQuery = {
+                title: { $regex: search, $options: 'i' }
+            }
+        }
+
+        const games = await Game.find(searchQuery) // finds game
+            .sort({ createdAt: -1}) // most recent first
+            .skip(skip)
+            .limit(limit)
+
+        const total = await Game.countDocuments(searchQuery) // counts total matching games
+
+        return NextResponse.json({
+            games,
+            pagination: {
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching games:', error);
+        return NextResponse.json({ error: "Failed to fetch games" }, { status: 500 });
+    }
+}
+
+// POST, create new game and update leaderboard
+export async function POST(req: NextRequest) {
+    try {
+        await dbConnect();
+        
+        const body = await req.json();
+        const { title, players, transfers } = body;
+        
+        if (!title || !players || !Array.isArray(players) || players.length < 2) {
+            return NextResponse.json({ 
+                error: "Missing required fields or invalid data" 
+            }, { status: 400 });
+        }
+
+        // Validate that game is balanced
+        const totalNet = players.reduce((sum: number, player: any) => sum + player.net, 0);
+        if (Math.abs(totalNet) > 0.01) {
+            return NextResponse.json({ 
+                error: "Game is not balanced" 
+            }, { status: 400 });
+        }
+
+        // Calculate game totals
+        const totalAmount = players.reduce((sum: number, player: any) => sum + player.buyIn, 0);
+        const playerCount = players.length;
+        
+        // Create the game
+        const newGame = await Game.create({
+            title,
+            totalAmount,
+            playerCount,
+            isBalanced: true,
+            transfers: transfers || []
+        });
+
+        // Sort players by net profit (highest first) and add rank
+        const rankedPlayers = players
+            .sort((a: any, b: any) => b.net - a.net)
+            .map((player: any, index: number) => ({
+                name: player.name,
+                buyIn: player.buyIn,
+                cashOut: player.cashOut,
+                net: player.net,
+                gameId: newGame._id,
+                rank: index + 1
+            }));
+
+        // Create player entries
+        await Player.insertMany(rankedPlayers);
+        
+        // Update leaderboard for each player
+        await updateLeaderboard(rankedPlayers);
+        
+        return NextResponse.json({
+            success: true,
+            game: newGame,
+            message: "Game saved successfully"
+        });
+        
+    } catch (error) {
+        console.error('Error creating game:', error);
+        return NextResponse.json({ error: "Failed to create game" }, { status: 500 });
+    }
+}
+
+// Helper function to update leaderboard (simplified)
+async function updateLeaderboard(players: any[]) {
+    for (const player of players) {
+        try {
+            // Get current leaderboard entry or create new one
+            let leaderboardEntry = await Leaderboard.findOne({ playerName: player.name });
+            
+            if (!leaderboardEntry) {
+                // New player
+                leaderboardEntry = await Leaderboard.create({
+                    playerName: player.name,
+                    totalProfit: player.net,
+                    gamesPlayed: 1,
+                    currentRank: 999999, // Will be updated later
+                    previousRank: null,
+                    rankChange: 'new'
+                });
+            } else {
+                // Existing player - update stats
+                leaderboardEntry.totalProfit += player.net;
+                leaderboardEntry.gamesPlayed += 1;
+                await leaderboardEntry.save();
+            }
+        } catch (error) {
+            console.error(`Error updating leaderboard for ${player.name}:`, error);
+        }
+    }
+    
+    // Recalculate ranks for all players
+    await updateAllRanks();
+}
+
+// Helper function to recalculate all ranks
+async function updateAllRanks() {
+    try {
+        // Get all players sorted by total profit (highest first)
+        const allPlayers = await Leaderboard.find({})
+            .sort({ totalProfit: -1 });
+        
+        // Update ranks and track changes
+        for (let i = 0; i < allPlayers.length; i++) {
+            const player = allPlayers[i];
+            const newRank = i + 1;
+            const oldRank = player.currentRank;
+            
+            // Determine rank change
+            let rankChange = 'same';
+            if (player.previousRank === null) {
+                rankChange = 'new';
+            } else if (newRank < oldRank) {
+                rankChange = 'up';
+            } else if (newRank > oldRank) {
+                rankChange = 'down';
+            }
+            
+            // Update player record
+            player.previousRank = oldRank;
+            player.currentRank = newRank;
+            player.rankChange = rankChange;
+            
+            await player.save();
+        }
+    } catch (error) {
+        console.error('Error updating ranks:', error);
+    }
+}

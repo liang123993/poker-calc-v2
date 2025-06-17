@@ -1,0 +1,169 @@
+# poker-calc-src-app-api-games-isolated Files
+
+### poker-calc\src\app\api\games-isolated\route.ts
+
+```ts
+// src/app/api/games-isolated/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongoose";
+import mongoose from "mongoose";
+
+// Define schemas inline to avoid import issues
+const GameSchema = new mongoose.Schema({
+    title: { type: String, required: true, trim: true },
+    totalAmount: { type: Number, required: true, min: 0 },
+    playerCount: { type: Number, required: true, min: 2 },
+    isBalanced: { type: Boolean, required: true, default: true },
+    transfers: [{
+        from: { type: String, required: true },
+        to: { type: String, required: true },
+        amount: { type: Number, required: true },
+    }]
+}, { timestamps: true });
+
+const PlayerSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true },
+    buyIn: { type: Number, required: true, min: 0 },
+    cashOut: { type: Number, required: true, min: 0 },
+    net: { type: Number, required: true },
+    gameId: { type: mongoose.Schema.Types.ObjectId, ref: "Game", required: true },
+    rank: { type: Number, required: true, min: 1 }
+}, { timestamps: true });
+
+const LeaderboardSchema = new mongoose.Schema({
+    playerName: { type: String, required: true, trim: true, unique: true },
+    totalProfit: { type: Number, required: true, default: 0 },
+    gamesPlayed: { type: Number, required: true, default: 0, min: 0 },
+    currentRank: { type: Number, required: true, default: 999999 },
+    previousRank: { type: Number, default: null },
+    rankChange: { type: String, enum: ['up', 'down', 'same', 'new'], default: 'new' }
+}, { timestamps: true });
+
+// Get or create models
+const Game = mongoose.models.GameIsolated || mongoose.model("GameIsolated", GameSchema);
+const Player = mongoose.models.PlayerIsolated || mongoose.model("PlayerIsolated", PlayerSchema);
+const Leaderboard = mongoose.models.LeaderboardIsolated || mongoose.model("LeaderboardIsolated", LeaderboardSchema);
+
+export async function GET(req: NextRequest) {
+    try {
+        await dbConnect();
+        
+        const games = await Game.find({}).sort({ createdAt: -1 }).limit(10);
+        
+        return NextResponse.json({
+            games,
+            message: "Isolated games API working"
+        });
+    } catch (error) {
+        console.error('Isolated GET error:', error);
+        return NextResponse.json({ error: "Failed to fetch games" }, { status: 500 });
+    }
+}
+
+export async function POST(req: NextRequest) {
+    try {
+        console.log('🎮 ISOLATED: Starting game creation...');
+        await dbConnect();
+        console.log('✅ ISOLATED: Database connected');
+        
+        const body = await req.json();
+        console.log('📥 ISOLATED: Received body:', JSON.stringify(body, null, 2));
+        
+        const { title, players, transfers } = body;
+        
+        // Basic validation
+        if (!title || !players || !Array.isArray(players) || players.length < 2) {
+            console.log('❌ ISOLATED: Validation failed');
+            return NextResponse.json({ 
+                error: "Missing required fields or invalid data" 
+            }, { status: 400 });
+        }
+
+        // Check balance
+        const totalNet = players.reduce((sum: number, player: any) => sum + player.net, 0);
+        console.log('💰 ISOLATED: Total net:', totalNet);
+        
+        if (Math.abs(totalNet) > 0.01) {
+            console.log('❌ ISOLATED: Game not balanced');
+            return NextResponse.json({ 
+                error: "Game is not balanced" 
+            }, { status: 400 });
+        }
+
+        // Create game
+        console.log('🎯 ISOLATED: Creating game...');
+        const gameData = {
+            title,
+            totalAmount: players.reduce((sum: number, player: any) => sum + player.buyIn, 0),
+            playerCount: players.length,
+            isBalanced: true,
+            transfers: transfers || []
+        };
+        
+        const newGame = await Game.create(gameData);
+        console.log('✅ ISOLATED: Game created with ID:', newGame._id);
+
+        // Create players
+        console.log('👥 ISOLATED: Creating players...');
+        const rankedPlayers = players
+            .sort((a: any, b: any) => b.net - a.net)
+            .map((player: any, index: number) => ({
+                name: player.name,
+                buyIn: player.buyIn,
+                cashOut: player.cashOut,
+                net: player.net,
+                gameId: newGame._id,
+                rank: index + 1
+            }));
+
+        await Player.insertMany(rankedPlayers);
+        console.log('✅ ISOLATED: Players created');
+        
+        // Simple leaderboard update
+        console.log('🏆 ISOLATED: Updating leaderboard...');
+        for (const player of rankedPlayers) {
+            try {
+                const existing = await Leaderboard.findOne({ playerName: player.name });
+                
+                if (!existing) {
+                    await Leaderboard.create({
+                        playerName: player.name,
+                        totalProfit: player.net,
+                        gamesPlayed: 1,
+                        currentRank: 999999,
+                        previousRank: null,
+                        rankChange: 'new'
+                    });
+                } else {
+                    existing.totalProfit += player.net;
+                    existing.gamesPlayed += 1;
+                    await existing.save();
+                }
+            } catch (leaderboardError) {
+                console.error(`❌ ISOLATED: Leaderboard error for ${player.name}:`, leaderboardError);
+                // Continue with other players even if one fails
+            }
+        }
+        console.log('✅ ISOLATED: Leaderboard updated');
+        
+        return NextResponse.json({
+            success: true,
+            game: newGame,
+            message: "Isolated game saved successfully"
+        });
+        
+    } catch (error) {
+        console.error('❌ ISOLATED: Error creating game:', error);
+        console.error('❌ ISOLATED: Error details:', {
+            name: error instanceof Error ? error.name : 'Unknown',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
+        
+        return NextResponse.json({ 
+            error: "Failed to create game",
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
+    }
+}
+```

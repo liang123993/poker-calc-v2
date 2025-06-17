@@ -1,0 +1,48 @@
+# poker-calc-src-app-api-leaderboard Files
+
+### poker-calc\src\app\api\leaderboard\route.ts
+
+```ts
+// src/app/api/leaderboard/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongoose";
+import Leaderboard from "@/models/Leaderboard";
+
+// GET /api/leaderboard → fetch leaderboard data
+export async function GET(req: NextRequest) {
+    try {
+        await dbConnect();
+        
+        const url = new URL(req.url);
+        const limit = parseInt(url.searchParams.get('limit') || '50'); // Default to top 50
+        
+        const leaderboard = await Leaderboard.find({})
+            .sort({ currentRank: 1 }) // Sort by rank (1st, 2nd, 3rd, etc.)
+            .limit(limit);
+        
+        // Format the response data
+        const formattedLeaderboard = leaderboard.map((entry) => ({
+            rank: entry.currentRank,
+            playerName: entry.playerName,
+            totalProfit: parseFloat(entry.totalProfit.toFixed(2)),
+            gamesPlayed: entry.gamesPlayed,
+            rankChange: entry.rankChange,
+            previousRank: entry.previousRank,
+            averageProfit: entry.gamesPlayed > 0 ? 
+                parseFloat((entry.totalProfit / entry.gamesPlayed).toFixed(2)) : 0
+        }));
+        
+        return NextResponse.json({
+            leaderboard: formattedLeaderboard,
+            totalPlayers: leaderboard.length
+        });
+        
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        return NextResponse.json({ 
+            error: "Failed to fetch leaderboard",
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
+    }
+}
+```
