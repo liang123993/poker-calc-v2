@@ -80,7 +80,7 @@ export default function PasswordModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
             <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
                 <h3 className="text-lg font-semibold mb-4 text-custom-primary">{title}</h3>
                 
@@ -132,11 +132,17 @@ export default function PasswordModal({
 import React, { useState } from 'react';
 import { Player } from '@/types/player';
 
+interface Transfer {
+    from: string;
+    to: string;
+    amount: number;
+}
+
 interface PayoutSummaryModalProps {
     isOpen: boolean;
     onClose: () => void;
     players: Player[];
-    onSubmit: (gameTitle: string) => void;  // Updated to pass game title
+    onSubmit: (gameTitle: string) => void;
 }
 
 export default function PayoutSummaryModal({ 
@@ -158,9 +164,51 @@ export default function PayoutSummaryModal({
         setGameTitle(''); // Reset after submit
     };
 
+    // Calculate optimal transfers
+    const calculateOptimalTransfers = (): Transfer[] => {
+        const debtors = players.filter(p => p.net < 0).map(p => ({ name: p.name, amount: Math.abs(p.net) }));
+        const creditors = players.filter(p => p.net > 0).map(p => ({ name: p.name, amount: p.net }));
+        
+        const transfers: Transfer[] = [];
+        
+        // Sort by amount for optimal matching
+        debtors.sort((a, b) => b.amount - a.amount);
+        creditors.sort((a, b) => b.amount - a.amount);
+        
+        let i = 0, j = 0;
+        
+        while (i < debtors.length && j < creditors.length) {
+            const debt = debtors[i].amount;
+            const credit = creditors[j].amount;
+            const transferAmount = Math.min(debt, credit);
+            
+            if (transferAmount > 0.01) { // Avoid tiny transfers due to floating point
+                transfers.push({
+                    from: debtors[i].name,
+                    to: creditors[j].name,
+                    amount: Math.round(transferAmount * 100) / 100
+                });
+            }
+            
+            debtors[i].amount -= transferAmount;
+            creditors[j].amount -= transferAmount;
+            
+            if (debtors[i].amount < 0.01) i++;
+            if (creditors[j].amount < 0.01) j++;
+        }
+        
+        return transfers;
+    };
+
+    const transfers = calculateOptimalTransfers();
+
+    const formatCurrency = (amount: number) => {
+        return `$${Math.abs(amount).toFixed(2)}`;
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-custom-surface rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-custom-background rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
                 {/* Modal Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">Payout Summary</h3>
@@ -173,7 +221,7 @@ export default function PayoutSummaryModal({
                 </div>
                 
                 {/* Game Title Input */}
-                <div className="mb-6 p-4 bg-custom-surface-alt rounded-lg border border-custom">
+                <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
                     <label className="block text-sm font-medium text-custom-primary mb-2">
                         Game Title
                     </label>
@@ -197,47 +245,50 @@ export default function PayoutSummaryModal({
                                 <th className="text-center py-3 px-4 font-medium text-custom-primary">Buy-in</th>
                                 <th className="text-center py-3 px-4 font-medium text-custom-primary">Cash-out</th>
                                 <th className="text-center py-3 px-4 font-medium text-custom-primary">Net</th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {players
                                 .sort((a, b) => b.net - a.net)
                                 .map((player, index) => (
-                                    <tr key={player.id} className="border-t border-custom">
+                                    <tr key={player.id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
                                         <td className="py-3 px-4 text-custom-primary font-semibold">#{index + 1}</td>
                                         <td className="py-3 px-4 text-custom-primary">{player.name}</td>
-                                        <td className="py-3 px-4 text-center text-custom-primary">${player.buyIn.toFixed(2)}</td>
-                                        <td className="py-3 px-4 text-center text-custom-primary">${player.cashOut.toFixed(2)}</td>
+                                        <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.buyIn)}</td>
+                                        <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.cashOut)}</td>
                                         <td className={`py-3 px-4 text-center font-semibold ${
                                             player.net > 0 ? 'text-green-400' : 
                                             player.net < 0 ? 'text-red-400' : 
                                             'text-gray-400'
                                         }`}>
-                                            ${player.net.toFixed(2)}
-                                        </td>
-                                        <td className="py-3 px-4 text-center">
-                                            {player.net > 0 && (
-                                                <span className="bg-green-900/30 text-green-400 px-3 py-1 rounded-full text-sm">
-                                                    -
-                                                </span>
-                                            )}
-                                            {player.net < 0 && (
-                                                <span className="bg-red-900/30 text-red-400 px-3 py-1 rounded-full text-sm">
-                                                    Pay ${Math.abs(player.net).toFixed(2)}
-                                                </span>
-                                            )}
-                                            {player.net === 0 && (
-                                                <span className="bg-gray-900/30 text-gray-400 px-3 py-1 rounded-full text-sm">
-                                                    -
-                                                </span>
-                                            )}
+                                            {player.net >= 0 ? '+' : '-'}{formatCurrency(player.net)}
                                         </td>
                                     </tr>
                                 ))}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Payment Instructions */}
+                {transfers.length > 0 && (
+                    <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                        <h4 className="text-lg font-semibold text-custom-primary mb-3">Payment Instructions</h4>
+                        <div className="space-y-2">
+                            {transfers.map((transfer, index) => (
+                                <div key={index} className="flex items-center justify-between bg-custom-background p-3 rounded border border-custom">
+                                    <span className="text-custom-primary">
+                                        <span className="font-semibold text-red-400">{transfer.from}</span>
+                                        {' pays '}
+                                        <span className="font-semibold text-green-400">{transfer.to}</span>
+                                    </span>
+                                    <span className="font-bold text-custom-primary text-lg">
+                                        {formatCurrency(transfer.amount)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Modal Actions */}
                 <div className="flex justify-center gap-4">
@@ -248,7 +299,7 @@ export default function PayoutSummaryModal({
                         Close
                     </button>
                     <button
-                        onClick={handleSubmit}  // Changed from onSubmit to handleSubmit
+                        onClick={handleSubmit}
                         className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors"
                     >
                         Submit Game

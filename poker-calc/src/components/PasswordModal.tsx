@@ -63,13 +63,13 @@ export default function PasswordModal({
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors"
+                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors"
+                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer"
                         >
                             Submit
                         </button>

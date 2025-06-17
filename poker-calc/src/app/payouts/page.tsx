@@ -226,7 +226,7 @@ export default function PayoutPage() {
                                                         key={index}
                                                         type="button"
                                                         onClick={() => handleNameSelect(player.id, name)}
-                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface-alt focus:bg-custom-surface-alt focus:outline-none transition-colors"
+                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface-alt focus:bg-custom-surface-alt focus:outline-none transition-colors cursor-pointer"
                                                     >
                                                         {name}
                                                     </button>
@@ -292,7 +292,7 @@ export default function PayoutPage() {
                                             onClick={() =>
                                                 removePlayer(player.id)
                                             }
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors"
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
                                             title="Delete player"
                                         >
                                             <Trash2 size={16} />
@@ -309,7 +309,7 @@ export default function PayoutPage() {
                     {/* Add Player Button */}
                     <button
                         onClick={addPlayer}
-                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors"
+                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
                     >
                         <Plus size={16} />
                         Add Player
@@ -342,7 +342,7 @@ export default function PayoutPage() {
                         disabled={!canCalculate()}
                         className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
                             canCalculate()
-                                ? "bg-custom-primary hover:opacity-80 text-white"
+                                ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
                                 : "bg-gray-600 text-gray-400 cursor-not-allowed"
                         }`}
                     >
