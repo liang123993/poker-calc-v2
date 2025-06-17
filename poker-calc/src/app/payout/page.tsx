@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Player, Transfer } from "@/types/player";
 import Header from "@/components/Header";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import PayoutSummaryModal from "@/components/PayoutSummaryModal";
 import PasswordModal from "@/components/PasswordModal";
-
-const previousNames = [
-    "Alex Johnson", "Sarah Chen", "Mike Rodriguez", "Emma Wilson", "David Kim",
-    "Lisa Thompson", "James Brown", "Anna Davis", "Tom Wilson", "Kate Miller",
-    "John Smith", "Mary Johnson", "Chris Lee", "Jessica Wang", "Ryan Taylor"
-];
 
 export default function PayoutPage() {
     const [players, setPlayers] = useState<Player[]>([]);
@@ -21,6 +15,24 @@ export default function PayoutPage() {
     const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pendingGameTitle, setPendingGameTitle] = useState<string>("");
+    const [previousNames, setPreviousNames] = useState<string[]>([]);
+
+    // Fetch player names from database
+    useEffect(() => {
+        fetchPlayerNames();
+    }, []);
+
+    const fetchPlayerNames = async () => {
+        try {
+            const response = await fetch('/api/players/names');
+            if (response.ok) {
+                const data = await response.json();
+                setPreviousNames(data.names || []);
+            }
+        } catch (error) {
+            console.error('Error fetching player names:', error);
+        }
+    };
 
     // add player
     const addPlayer = () => {
@@ -195,6 +207,9 @@ export default function PayoutPage() {
             const result = await response.json();
             console.log('Game saved successfully:', result);
             
+            // Refresh player names after successful save
+            await fetchPlayerNames();
+            
             return result;
         } catch (error) {
             console.error('Error saving game:', error);
@@ -296,7 +311,7 @@ export default function PayoutPage() {
                                                         key={index}
                                                         type="button"
                                                         onClick={() => handleNameSelect(player.id, name)}
-                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface-alt focus:bg-custom-surface-alt focus:outline-none transition-colors cursor-pointer"
+                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
                                                     >
                                                         {name}
                                                     </button>
