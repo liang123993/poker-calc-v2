@@ -1,3 +1,4 @@
+// src/types/player.ts
 export interface Player {
     id: string;
     name: string;
@@ -5,32 +6,90 @@ export interface Player {
     cashOut: number;
     net: number;
     gameId?: string;
+    rank?: number;
     createdAt?: Date;
     updatedAt?: Date;
 }
 
-export interface PayoutSummary {
-    rank: number;
-    name: string;
-    buyIn: number;
-    cashout: number;
-    net: number;
-    action: 'pay' | '-';
+export interface Transfer {
+    from: string;
+    to: string;
     amount: number;
 }
 
-export interface Transfer {
-  from: string;
-  to: string;
-  amount: number;
+export interface Game {
+    _id: string;
+    title: string;
+    totalAmount: number;
+    playerCount: number;
+    isBalanced: boolean;
+    transfers: Transfer[];
+    status: 'completed' | 'active' | 'cancelled';
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface GameWithPlayers extends Game {
+    players: Player[];
+}
+
+export interface LeaderboardEntry {
+    rank: number;
+    playerName: string;
+    totalProfit: number;
+    gamesPlayed: number;
+    rankChange: 'up' | 'down' | 'same' | 'new';
+    previousRank: number | null;
+    averageProfit: number;
+    lastGame?: {
+        title: string;
+        date: Date;
+    } | null;
+    bestGame: {
+        profit: number;
+        game?: {
+            title: string;
+            date: Date;
+        } | null;
+    };
+    worstGame: {
+        profit: number;
+        game?: {
+            title: string;
+            date: Date;
+        } | null;
+    };
 }
 
 export interface GameResult {
-  title: string;
-  players: Player[];
-  transfers: Transfer[];
-  totalNet: number;
-  isBalanced: boolean;
-  totalAmount: number;
-  playerCount: number;
+    title: string;
+    players: Player[];
+    transfers: Transfer[];
+    totalNet: number;
+    isBalanced: boolean;
+    totalAmount: number;
+    playerCount: number;
+}
+
+// API Response types
+export interface GamesResponse {
+    games: Game[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+    };
+}
+
+export interface LeaderboardResponse {
+    leaderboard: LeaderboardEntry[];
+    totalPlayers: number;
+}
+
+// Form types for creating games
+export interface GameSubmission {
+    title: string;
+    players: Player[];
+    transfers: Transfer[];
 }
