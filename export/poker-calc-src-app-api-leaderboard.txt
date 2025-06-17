@@ -1,6 +1,6 @@
-# poker-calc-src-app-api-leaderboard Files
+# poker-calc-src-app-api-Leaderboard Files
 
-### poker-calc\src\app\api\leaderboard\route.ts
+### poker-calc\src\app\api\Leaderboard\route.ts
 
 ```ts
 // src/app/api/leaderboard/route.ts
