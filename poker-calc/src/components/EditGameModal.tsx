@@ -1,0 +1,418 @@
+// src/components/EditGameModal.tsx
+import React, { useState, useEffect } from 'react';
+import { Player, GameWithPlayers } from '@/types/player';
+import { Plus, Trash2, X } from 'lucide-react';
+
+interface EditGameModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    game: GameWithPlayers | null;
+    onSave: (updatedGame: GameWithPlayers) => void;
+}
+
+export default function EditGameModal({ 
+    isOpen, 
+    onClose, 
+    game, 
+    onSave 
+}: EditGameModalProps) {
+    const [title, setTitle] = useState('');
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+    const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
+    const [previousNames, setPreviousNames] = useState<string[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (game && isOpen) {
+            setTitle(game.title);
+            setPlayers([...game.players]);
+            fetchPlayerNames();
+        }
+    }, [game, isOpen]);
+
+    const fetchPlayerNames = async () => {
+        try {
+            const response = await fetch('/api/players/names');
+            if (response.ok) {
+                const data = await response.json();
+                setPreviousNames(data.names || []);
+            }
+        } catch (error) {
+            console.error('Error fetching player names:', error);
+        }
+    };
+
+    if (!isOpen || !game) return null;
+
+    const addPlayer = () => {
+        const newPlayer: Player = {
+            id: Date.now().toString(),
+            name: "",
+            buyIn: 0,
+            cashOut: 0,
+            net: 0,
+            gameId: game._id,
+            rank: players.length + 1
+        };
+        setPlayers([...players, newPlayer]);
+    };
+
+    const removePlayer = (id: string) => {
+        setPlayers(players.filter((player) => player.id !== id));
+    };
+
+    const updatePlayer = (
+        id: string,
+        field: keyof Player,
+        value: string | number
+    ) => {
+        setPlayers(
+            players.map((player) => {
+                if (player.id === id) {
+                    const updated = { ...player, [field]: value };
+
+                    if (field === "buyIn" || field === "cashOut") {
+                        const buyIn = Math.round(updated.buyIn * 100) / 100;
+                        const cashOut = Math.round(updated.cashOut * 100) / 100;
+                        updated.net = Math.round((cashOut - buyIn) * 100) / 100;
+                    }
+
+                    return updated;
+                }
+                return player;
+            })
+        );
+    };
+
+    // Filter names for dropdown
+    const getFilteredNames = (playerId: string) => {
+        const searchTerm = searchTerms[playerId] || "";
+        const currentPlayerNames = players.map(p => p.name.toLowerCase());
+        return previousNames.filter((name) => 
+            name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !currentPlayerNames.includes(name.toLowerCase()) &&
+            name.toLowerCase() !== searchTerm.toLowerCase()
+        );
+    };
+
+    // Handle name selection from dropdown
+    const handleNameSelect = (playerId: string, name: string) => {
+        updatePlayer(playerId, "name", name);
+        setDropdownOpen(null);
+        setSearchTerms({ ...searchTerms, [playerId]: "" });
+    };
+
+    // Handle name input change
+    const handleNameInputChange = (playerId: string, value: string) => {
+        updatePlayer(playerId, "name", value);
+        setSearchTerms({ ...searchTerms, [playerId]: value });
+        if (value && getFilteredNames(playerId).length > 0) {
+            setDropdownOpen(playerId);
+        } else {
+            setDropdownOpen(null);
+        }
+    };
+
+    const getTotalNet = () => {
+        return players.reduce((sum, player) => sum + player.net, 0);
+    };
+
+    const isGameBalanced = () => {
+        return Math.abs(getTotalNet()) < 0.01;
+    };
+
+    const canSave = () => {
+        return (
+            title.trim() !== "" &&
+            players.length >= 2 &&
+            players.every((p) => p.name.trim() !== "") &&
+            isGameBalanced()
+        );
+    };
+
+    const formatCurrency = (amount: number) => {
+        return `$${Math.abs(amount).toFixed(2)}`;
+    };
+
+    const getBalanceMessage = () => {
+        const totalNet = getTotalNet();
+        if (Math.abs(totalNet) < 0.01) {
+            return <span className="text-green-400">Balanced ✓</span>;
+        } else if (totalNet > 0) {
+            return (
+                <span className="text-red-400">
+                    Over by {formatCurrency(totalNet)}
+                </span>
+            );
+        } else {
+            return (
+                <span className="text-red-400">
+                    Missing {formatCurrency(totalNet)}
+                </span>
+            );
+        }
+    };
+
+    const handleSave = async () => {
+        if (!canSave()) {
+            if (title.trim() === "") {
+                alert("Please enter a game title.");
+                return;
+            }
+            if (players.length < 2) {
+                alert("Please add at least 2 players.");
+                return;
+            }
+            if (players.some((p) => p.name.trim() === "")) {
+                alert("All players must have names.");
+                return;
+            }
+            if (!isGameBalanced()) {
+                alert(
+                    `Game is not balanced. Total net: ${formatCurrency(getTotalNet())}`
+                );
+                return;
+            }
+        }
+
+        setIsSubmitting(true);
+        try {
+            // Calculate new ranks based on net profit
+            const rankedPlayers = players
+                .sort((a, b) => b.net - a.net)
+                .map((player, index) => ({
+                    ...player,
+                    rank: index + 1
+                }));
+
+            const updatedGame: GameWithPlayers = {
+                ...game,
+                title: title.trim(),
+                totalAmount: players.reduce((sum, player) => sum + player.buyIn, 0),
+                playerCount: players.length,
+                players: rankedPlayers
+            };
+
+            onSave(updatedGame);
+        } catch (error) {
+            alert('Failed to save changes. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleClose = () => {
+        setTitle('');
+        setPlayers([]);
+        setSearchTerms({});
+        setDropdownOpen(null);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-custom-background rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-custom-primary">Edit Game</h3>
+                    <button 
+                        onClick={handleClose}
+                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+                
+                {/* Game Title Input */}
+                <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                    <label className="block text-sm font-medium text-custom-primary mb-2">
+                        Game Title
+                    </label>
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        placeholder="eg. Edwin's House - 69/69/69"
+                        required
+                    />
+                </div>
+
+                {/* Players Table */}
+                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
+                    <table className="w-full">
+                        <thead className="bg-custom-surface">
+                            <tr>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Player Name
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Buy-in
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Cash-out
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Net Gain/Loss
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {players.map((player) => (
+                                <tr key={player.id} className="border-t border-custom">
+                                    <td className="py-3 px-4 relative">
+                                        <input
+                                            type="text"
+                                            value={player.name}
+                                            onChange={(e) => handleNameInputChange(player.id, e.target.value)}
+                                            onFocus={() => {
+                                                if (player.name && getFilteredNames(player.id).length > 0) {
+                                                    setDropdownOpen(player.id);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => setDropdownOpen(null), 150);
+                                            }}
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                                            placeholder="Enter or select name"
+                                            id={`edit-player-input-${player.id}`}
+                                        />
+                                        
+                                        {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
+                                            <div className="fixed z-60 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                                style={{
+                                                    top: `${document.getElementById(`edit-player-input-${player.id}`)?.getBoundingClientRect().bottom + window.scrollY + 4}px`,
+                                                    left: `${document.getElementById(`edit-player-input-${player.id}`)?.getBoundingClientRect().left + window.scrollX}px`,
+                                                    width: `${document.getElementById(`edit-player-input-${player.id}`)?.getBoundingClientRect().width}px`
+                                                }}>
+                                                {getFilteredNames(player.id).map((name, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() => handleNameSelect(player.id, name)}
+                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.buyIn || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "buyIn",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.cashOut || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "cashOut",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <span
+                                            className={`font-semibold ${
+                                                player.net > 0
+                                                    ? "text-green-400"
+                                                    : player.net < 0
+                                                      ? "text-red-400"
+                                                      : "text-gray-400"
+                                            }`}
+                                        >
+                                            ${player.net.toFixed(2)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <button
+                                            onClick={() => removePlayer(player.id)}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
+                                            title="Delete player"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Add Player and Balance Summary */}
+                <div className="flex justify-between items-center mb-6">
+                    <button
+                        onClick={addPlayer}
+                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                        <Plus size={16} />
+                        Add Player
+                    </button>
+
+                    <div className="text-right">
+                        <div className="text-lg font-semibold mb-1">
+                            Total Net:{" "}
+                            <span
+                                className={`${
+                                    getTotalNet() > 0
+                                        ? "text-red-400"
+                                        : getTotalNet() < 0
+                                          ? "text-red-400"
+                                          : "text-green-400"
+                                }`}
+                            >
+                                {formatCurrency(getTotalNet())}
+                            </span>
+                        </div>
+                        <div className="text-sm">{getBalanceMessage()}</div>
+                    </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex justify-end gap-4">
+                    <button
+                        onClick={handleClose}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={!canSave() || isSubmitting}
+                        className={`px-6 py-2 rounded transition-colors ${
+                            canSave() && !isSubmitting
+                                ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
+                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                        {isSubmitting ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
