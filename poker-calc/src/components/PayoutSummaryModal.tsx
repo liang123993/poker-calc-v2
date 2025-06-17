@@ -108,7 +108,7 @@ export default function PayoutSummaryModal({
                 {/* Results Table */}
                 <div className="overflow-x-auto mb-6">
                     <table className="w-full">
-                        <thead className="bg-custom-surface">
+                        <thead className="bg-custom-surface-alt">
                             <tr>
                                 <th className="text-left py-3 px-4 font-medium text-custom-primary">Rank</th>
                                 <th className="text-left py-3 px-4 font-medium text-custom-primary">Name</th>
@@ -121,7 +121,7 @@ export default function PayoutSummaryModal({
                             {players
                                 .sort((a, b) => b.net - a.net)
                                 .map((player, index) => (
-                                    <tr key={player.id} className="border-t border-custom">
+                                    <tr key={player.id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
                                         <td className="py-3 px-4 text-custom-primary font-semibold">#{index + 1}</td>
                                         <td className="py-3 px-4 text-custom-primary">{player.name}</td>
                                         <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.buyIn)}</td>
@@ -147,7 +147,7 @@ export default function PayoutSummaryModal({
                             {transfers.map((transfer, index) => (
                                 <div key={index} className="flex items-center justify-between bg-custom-background p-3 rounded border border-custom">
                                     <span className="text-custom-primary">
-                                        <span className="font-semibold text-blue-400">{transfer.from}</span>
+                                        <span className="font-semibold text-red-400">{transfer.from}</span>
                                         {' pays '}
                                         <span className="font-semibold text-green-400">{transfer.to}</span>
                                     </span>
