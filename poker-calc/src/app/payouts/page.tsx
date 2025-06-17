@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Player } from "@/types/player";
 import Header from "@/components/Header";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Calculator } from "lucide-react"
 
 export default function PayoutPage() {
     // store players in array
     const [players, setPlayers] = useState<Player[]>([]); // ['liang', 'michael', ...]
 
+    // add player
     const addPlayer = () => {
         const newPlayer: Player = {
             id: Date.now().toString(), // Simple ID using timestamp
@@ -18,13 +19,14 @@ export default function PayoutPage() {
             net: 0,
         };
         setPlayers([...players, newPlayer]);
-        console.log(players);
     };
 
+    // remove player
     const removePlayer = (id: string) => {
         setPlayers(players.filter(player => player.id !== id))
     };
 
+    // update details
     const updatePlayer = (
         id: string,
         field: keyof Player,
@@ -36,7 +38,9 @@ export default function PayoutPage() {
                     const updated = { ...player, [field]: value };
 
                     if (field === "buyIn" || field === "cashOut") {
-                        updated.net = updated.cashOut - updated.buyIn;
+                        const buyIn = Math.round(updated.buyIn * 100) / 100;
+                        const cashOut = Math.round(updated.cashOut * 100) / 100;
+                        updated.net = Math.round((cashOut - buyIn) * 100) / 100;
                     }
 
                     return updated;
@@ -45,6 +49,8 @@ export default function PayoutPage() {
             })
         );
     };
+
+    
 
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
@@ -166,12 +172,15 @@ export default function PayoutPage() {
                                     </td>
                                 </tr>
                             ))}
+
                         </tbody>
                     </table>
                 </div>
 
-                {/* add player button */}
+                {/* bottom action rows */}   
                 <div className="mb-6">
+
+                    {/* add player button */}
                     <button
                         onClick={addPlayer}
                         className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors"
@@ -179,7 +188,24 @@ export default function PayoutPage() {
                         <Plus size={16} />
                         Add Player
                     </button>
+
+                    {/* total net */}
+                    <div className="text-right">
+                        <div className="text-lg font-semibold mb-1">
+                            Total Net: <span className={`${
+                                Math.abs(getTotalNet()) < 0.01 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+
+                            </span>
+
+                        </div>
+                    </div>      
                 </div>
+
+                    {/* calculate button */}
+
+
+                    
             </main>
         </div>
     );
