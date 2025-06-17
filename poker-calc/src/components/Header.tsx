@@ -1,19 +1,32 @@
+import React from 'react';
+
 interface HeaderProps {
-    currentPage: "payout" | "leaderboard" | "history";
+  currentPage: 'payout' | 'leaderboard' | 'history';
 }
 
 export default function Header({ currentPage }: HeaderProps) {
-    return (
-        <header>
-            {/* left */}
-            <h1>Poker Payout Calculator</h1>
+  const getLinkClass = (page: string) => {
+    return currentPage === page 
+      ? "text-custom-primary font-medium" 
+      : "text-custom-secondary hover:text-custom-primary transition-colors";
+  };
 
-            {/* right */}
-            <nav>
-                <a href="/leaderboard">Leaderboard</a>
-                <a href="/payout">Payout</a>
-                <a href="/history">Game History</a>
-            </nav>
-        </header>
-    );
+  return (
+    <header className="bg-custom-background border-b border-custom px-6 py-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold text-custom-primary">Poker Payout Calculator</h1>
+        <nav className="flex">
+          <a href="/leaderboard" className={`${getLinkClass('leaderboard')} mr-6`}>
+            Leaderboard
+          </a>
+          <a href="/payout" className={`${getLinkClass('payout')} mr-6`}>
+            Payout
+          </a>
+          <a href="/history" className={getLinkClass('history')}>
+            Game History
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
 }
