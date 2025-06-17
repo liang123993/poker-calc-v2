@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --color-background: #171111;
@@ -26,3 +28,5 @@ body {
 .border-custom { border-color: var(--color-border); }
 .text-custom-primary { color: var(--color-text-primary); }
 .text-custom-secondary { color: var(--color-text-secondary); }
+.focus\:border-custom-primary:focus { border-color: var(--color-primary); }
+.hover\:bg-custom-border:hover { background-color: var(--color-border); }

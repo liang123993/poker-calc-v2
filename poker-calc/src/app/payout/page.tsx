@@ -301,11 +301,16 @@ export default function PayoutPage() {
                                         
                                         {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
                                             <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
-                                                style={{
-                                                    top: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().bottom + window.scrollY + 4}px`,
-                                                    left: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().left + window.scrollX}px`,
-                                                    width: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().width}px`
-                                                }}>
+                                                style={(() => {
+                                                    const element = document.getElementById(`player-input-${player.id}`);
+                                                    if (!element) return {};
+                                                    const rect = element.getBoundingClientRect();
+                                                    return {
+                                                        top: `${rect.bottom + window.scrollY + 4}px`,
+                                                        left: `${rect.left + window.scrollX}px`,
+                                                        width: `${rect.width}px`
+                                                    };
+                                                })()}>
                                                 {getFilteredNames(player.id).map((name, index) => (
                                                     <button
                                                         key={index}

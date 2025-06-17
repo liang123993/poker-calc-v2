@@ -24,7 +24,7 @@ export async function GET(
             .lean();
 
         return NextResponse.json({
-            players: players.map(player => ({
+            players: players.map((player: any) => ({
                 id: player._id.toString(),
                 name: player.name,
                 buyIn: player.buyIn,
