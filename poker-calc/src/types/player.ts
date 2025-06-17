@@ -1,0 +1,36 @@
+export interface Player {
+    id: string;
+    name: string;
+    buyIn: number;
+    cashOut: number;
+    net: number;
+    gameId?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface PayoutSummary {
+    rank: number;
+    name: string;
+    buyIn: number;
+    cashout: number;
+    net: number;
+    action: 'pay' | '-';
+    amount: number;
+}
+
+export interface Transfer {
+  from: string;
+  to: string;
+  amount: number;
+}
+
+export interface GameResult {
+  title: string;
+  players: Player[];
+  transfers: Transfer[];
+  totalNet: number;
+  isBalanced: boolean;
+  totalAmount: number;
+  playerCount: number;
+}
