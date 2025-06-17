@@ -166,10 +166,10 @@ export default function PayoutPage() {
                     Payout Entry
                 </h2>
                 {/* table */}
-                <div className="bg-custom-surface border border-custom rounded-lg overflow-hidden mb-6">
+                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
                     <table className="w-full">
                         {/* table head row */}
-                        <thead className="bg-custom-surface-alt">
+                        <thead className="bg-custom-surface">
                             <tr>
                                 <th className="text-center py-3 px-4 font-medium text-custom-primary">
                                     Player Name
@@ -208,14 +208,14 @@ export default function PayoutPage() {
                                             onBlur={() => {
                                                 setTimeout(() => setDropdownOpen(null), 150);
                                             }}
-                                            className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
                                             placeholder="Enter or select name"
                                             id={`player-input-${player.id}`}
                                         />
                                         
                                         {/* Dropdown with fixed positioning */}
                                         {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
-                                            <div className="fixed z-50 bg-custom-surface border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                            <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
                                                 style={{
                                                     top: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().bottom + window.scrollY + 4}px`,
                                                     left: `${document.getElementById(`player-input-${player.id}`)?.getBoundingClientRect().left + window.scrollX}px`,
@@ -249,7 +249,7 @@ export default function PayoutPage() {
                                                     ) || 0
                                                 )
                                             }
-                                            className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
                                             placeholder="0"
                                         />
                                     </td>
@@ -268,7 +268,7 @@ export default function PayoutPage() {
                                                     ) || 0
                                                 )
                                             }
-                                            className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
                                             placeholder="0"
                                         />
                                     </td>
