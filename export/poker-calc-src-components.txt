@@ -310,17 +310,3 @@ export default function PayoutSummaryModal({
     );
 }
 ```
-
-
-### poker-calc\src\components\PlayerForm.tsx
-
-```tsx
-
-```
-
-
-### poker-calc\src\components\PlayerTable.tsx
-
-```tsx
-
-```

@@ -6,15 +6,9 @@
     └── src
         ├── app
         │   ├── api
-        │   │   ├── debug-test
+        │   │   ├── Leaderboard
         │   │   │   ├── route.ts
         │   │   ├── games
-        │   │   │   ├── route.ts
-        │   │   ├── games-isolated
-        │   │   │   ├── route.ts
-        │   │   ├── leaderboard
-        │   │   │   ├── route.ts
-        │   │   ├── test-player
         │   │   │   └── route.ts
         │   ├── layout.tsx
         │   ├── payouts
@@ -23,8 +17,6 @@
         │   ├── Header.tsx
         │   ├── PasswordModal.tsx
         │   ├── PayoutSummaryModal.tsx
-        │   ├── PlayerForm.tsx
-        │   ├── PlayerTable.tsx
         ├── lib
         │   ├── mongoose.ts
         ├── models
