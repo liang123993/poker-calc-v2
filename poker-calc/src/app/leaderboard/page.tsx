@@ -38,7 +38,7 @@ export default function LeaderboardPage() {
     };
 
     const getRankIcon = (rank: number) => {
-        return <span className="text-custom-primary font-bold">#{rank}</span>;
+        return <span className="text-custom-primary">#{rank}</span>;
     };
 
     const getRankChangeIcon = (rankChange: string, previousRank: number | null, currentRank: number) => {
@@ -46,13 +46,13 @@ export default function LeaderboardPage() {
             case 'up':
                 return (
                     <div className="flex items-center justify-center gap-1 text-custom-primary">
-                        <TrendingUp size={16} />
+                        <TrendingUp size={16} className="text-green-400" />
                     </div>
                 );
             case 'down':
                 return (
                     <div className="flex items-center justify-center gap-1 text-custom-primary">
-                        <TrendingDown size={16} />
+                        <TrendingDown size={16} className="text-red-400" />
                     </div>
                 );
             case 'new':
@@ -174,20 +174,26 @@ export default function LeaderboardPage() {
                                             </div>
                                         </td>
                                         <td className="py-4 px-4 text-center">
-                                            <div className="font-semibold text-custom-primary">
+                                            <div className="text-custom-primary">
                                                 {player.playerName}
                                             </div>
                                         </td>
                                         <td className="py-4 px-4 text-center text-custom-primary">
                                             {player.gamesPlayed}
                                         </td>
-                                        <td className={`py-4 px-4 text-center font-bold text-lg ${getProfitColorClass(player.totalProfit)}`}>
+                                        <td className={`py-4 px-4 text-center text-lg ${getProfitColorClass(player.totalProfit)}`}>
                                             {player.totalProfit >= 0 ? '+' : '-'}{formatCurrency(player.totalProfit)}
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {leaderboard.length > 0 && (
+                    <div className="mt-6 text-center text-custom-secondary text-sm">
+                        Showing {leaderboard.length} players
                     </div>
                 )}
             </main>

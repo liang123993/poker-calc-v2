@@ -411,10 +411,7 @@ export default function GameHistoryPage() {
                                             </div>
                                         </td>
                                         <td className="py-4 px-4 text-center text-custom-primary">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <DollarSign size={16} />
-                                                <span>{formatCurrency(game.totalAmount)}</span>
-                                            </div>
+                                            <span>{formatCurrency(game.totalAmount)}</span>
                                         </td>
                                         <td className="py-4 px-4 text-center">
                                             <button
