@@ -1,26 +1,70 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: #171111;
+  --color-primary: #EA2831;
+  --color-surface: #311E1D;
+  --color-border: #4C3E40;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #AEA19F;
+  --color-surface-alt: #271E1D;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, "Noto Sans", sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom utility classes using our variables */
+.bg-custom-background { background-color: var(--color-background); }
+.bg-custom-surface { background-color: var(--color-surface); }
+.bg-custom-surface-alt { background-color: var(--color-surface-alt); }
+.bg-custom-primary { background-color: var(--color-primary); }
+.border-custom { border-color: var(--color-border); }
+.text-custom-primary { color: var(--color-text-primary); }
+.text-custom-secondary { color: var(--color-text-secondary); }
+
+/* Input styles */
+.input-custom {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.input-custom::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.input-custom:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  transition: border-color 0.2s;
+}
+
+/* Button styles */
+.button-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.button-primary:hover {
+  opacity: 0.8;
+}
+
+.button-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.button-secondary:hover {
+  background-color: var(--color-border);
 }
