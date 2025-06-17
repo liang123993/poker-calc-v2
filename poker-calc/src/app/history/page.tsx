@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import PasswordModal from "@/components/PasswordModal";
+import EditGameModal from "@/components/EditGameModal";
 import { Game, Player, GameWithPlayers } from "@/types/player";
 import { Search, Eye, Edit3, Trash2, Users, DollarSign } from "lucide-react";
 
@@ -152,6 +153,7 @@ export default function GameHistoryPage() {
     const [showDetails, setShowDetails] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [pendingAction, setPendingAction] = useState<'edit' | 'delete' | null>(null);
 
     useEffect(() => {
@@ -234,13 +236,54 @@ export default function GameHistoryPage() {
         setShowPasswordModal(false);
         
         if (pendingAction === 'edit') {
-            // TODO: Implement edit functionality
-            alert('Edit functionality coming soon!');
+            setShowEditModal(true);
         } else if (pendingAction === 'delete') {
             setShowDeleteConfirm(true);
         }
         
         setPendingAction(null);
+    };
+
+    const handleSaveEdit = async (updatedGame: GameWithPlayers) => {
+        try {
+            const response = await fetch(`/api/games/${updatedGame._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: updatedGame.title,
+                    players: updatedGame.players.map(player => ({
+                        name: player.name,
+                        buyIn: player.buyIn,
+                        cashOut: player.cashOut,
+                        net: player.net
+                    }))
+                }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update game');
+            }
+            
+            const result = await response.json();
+            
+            // Update the game in our local state
+            setGames(games.map(game => 
+                game._id === updatedGame._id ? result.game : game
+            ));
+            
+            // Also update selectedGame if it's the same game
+            if (selectedGame?._id === updatedGame._id) {
+                setSelectedGame(result.game);
+            }
+            
+            setShowEditModal(false);
+            alert('Game updated successfully!');
+            
+        } catch (error) {
+            alert('Failed to update game. Please try again.');
+        }
     };
 
     const handleConfirmDelete = async () => {
@@ -405,6 +448,16 @@ export default function GameHistoryPage() {
                 game={selectedGame}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+            />
+
+            <EditGameModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setSelectedGame(null);
+                }}
+                game={selectedGame}
+                onSave={handleSaveEdit}
             />
 
             <PasswordModal
