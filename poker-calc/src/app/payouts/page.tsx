@@ -50,7 +50,10 @@ export default function PayoutPage() {
         );
     };
 
-    
+    // calcs every players net summed tgt
+    const getTotalNet = () => {
+        return players.reduce((sum, player) => sum + player.net, 0)
+    }
 
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
@@ -193,7 +196,9 @@ export default function PayoutPage() {
                     <div className="text-right">
                         <div className="text-lg font-semibold mb-1">
                             Total Net: <span className={`${
-                                Math.abs(getTotalNet()) < 0.01 ? 'text-green-400' : 'text-red-400'
+                                getTotalNet() < 0 ? 'text-red-400' :
+                                getTotalNet() > 0 ? 'text-red-400' :
+                                'text-green-400' :
                             }`}>
 
                             </span>
