@@ -358,7 +358,7 @@ export default function PayoutPage() {
                 players={players}
                 onSubmit={(gameTitle) => {
                     console.log('Game submitted:', gameTitle);
-                    setShowSummary(false);
+                    // Don't close the summary modal here
                     setShowPasswordModal(true)
                 }}
             />
@@ -368,6 +368,8 @@ export default function PayoutPage() {
                 onClose={() => setShowPasswordModal(false)}
                 onSuccess={() => {
                     setShowPasswordModal(false);
+                    // Only close the summary modal after successful password entry
+                    setShowSummary(false);
                     alert('Game saved successfully!');
                     // TODO: Save to database
                     setPlayers([]); // Clear the form
