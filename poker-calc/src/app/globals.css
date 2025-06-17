@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --color-background: #171111;
@@ -20,7 +18,7 @@ body {
   padding: 0;
 }
 
-/* Custom utility classes using our variables */
+/* Custom utility classes */
 .bg-custom-background { background-color: var(--color-background); }
 .bg-custom-surface { background-color: var(--color-surface); }
 .bg-custom-surface-alt { background-color: var(--color-surface-alt); }
@@ -28,43 +26,3 @@ body {
 .border-custom { border-color: var(--color-border); }
 .text-custom-primary { color: var(--color-text-primary); }
 .text-custom-secondary { color: var(--color-text-secondary); }
-
-/* Input styles */
-.input-custom {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.input-custom::placeholder {
-  color: var(--color-text-secondary);
-}
-
-.input-custom:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  transition: border-color 0.2s;
-}
-
-/* Button styles */
-.button-primary {
-  background-color: var(--color-primary);
-  color: var(--color-text-primary);
-  border: none;
-  transition: opacity 0.2s;
-}
-
-.button-primary:hover {
-  opacity: 0.8;
-}
-
-.button-secondary {
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  transition: background-color 0.2s;
-}
-
-.button-secondary:hover {
-  background-color: var(--color-border);
-}

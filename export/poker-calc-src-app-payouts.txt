@@ -3,5 +3,26 @@
 ### poker-calc\src\app\payouts\page.tsx
 
 ```tsx
+'use client'
 
+import { useState } from "react"
+import Header from "@/components/Header"
+
+export default function PayoutPage() {
+
+    // store players in array
+    const [players, setPlayers] = useState([]) // ['liang', 'michael', ...]
+
+    return (
+        <div>
+            {/* header */}
+            <Header currentPage="payout"/>
+            {/* main content */}
+
+                {/* table */}
+
+
+        </div>
+    )
+}
 ```

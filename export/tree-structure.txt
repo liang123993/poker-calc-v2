@@ -12,6 +12,7 @@
         │   ├── payouts
         │   │   └── page.tsx
         ├── components
+        │   ├── Header.tsx
         │   ├── PlayerForm.tsx
         │   ├── PlayerTable.tsx
         ├── lib
@@ -20,4 +21,5 @@
         │   ├── Player.ts
         ├── types
         │   └── player.ts
+    └── tailwind.config.js
     └── tsconfig.json
