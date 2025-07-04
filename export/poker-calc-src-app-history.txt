@@ -1,3 +1,8 @@
+# poker-calc-src-app-history Files
+
+### poker-calc\src\app\history\page.tsx
+
+```tsx
 // src/app/history/page.tsx
 "use client";
 
@@ -30,7 +35,7 @@ function GameDetailsModal({ isOpen, onClose, game, onEdit, onDelete }: GameDetai
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-custom-background rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">{game.title}</h3>
@@ -119,7 +124,7 @@ function ConfirmDeleteModal({ isOpen, onClose, onConfirm, gameName }: ConfirmDel
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
             <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
                 <h3 className="text-lg font-semibold mb-4 text-custom-primary">Confirm Delete</h3>
                 <p className="text-custom-secondary mb-6">
@@ -228,8 +233,6 @@ export default function GameHistoryPage() {
     };
 
     const handleDelete = () => {
-        // Close the details modal first
-        setShowDetails(false);
         setPendingAction('delete');
         setShowPasswordModal(true);
     };
@@ -301,25 +304,12 @@ export default function GameHistoryPage() {
             }
             
             setShowDeleteConfirm(false);
+            setShowDetails(false);
             setSelectedGame(null);
             await fetchGames(); // Refresh the list
             alert('Game deleted successfully!');
         } catch (error) {
             alert('Failed to delete game. Please try again.');
-        }
-    };
-
-    const handleCancelDelete = () => {
-        setShowDeleteConfirm(false);
-        setSelectedGame(null);
-    };
-
-    const handleClosePasswordModal = () => {
-        setShowPasswordModal(false);
-        setPendingAction(null);
-        // If we were trying to delete, restore the details modal
-        if (pendingAction === 'delete') {
-            setShowDetails(true);
         }
     };
 
@@ -451,7 +441,6 @@ export default function GameHistoryPage() {
                 )}
             </main>
 
-            {/* Modals - Order matters for z-index */}
             <GameDetailsModal
                 isOpen={showDetails}
                 onClose={() => {
@@ -475,17 +464,21 @@ export default function GameHistoryPage() {
 
             <PasswordModal
                 isOpen={showPasswordModal}
-                onClose={handleClosePasswordModal}
+                onClose={() => {
+                    setShowPasswordModal(false);
+                    setPendingAction(null);
+                }}
                 onSuccess={handlePasswordSuccess}
                 title={pendingAction === 'edit' ? 'Edit Game' : 'Delete Game'}
             />
 
             <ConfirmDeleteModal
                 isOpen={showDeleteConfirm}
-                onClose={handleCancelDelete}
+                onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={handleConfirmDelete}
                 gameName={selectedGame?.title || ''}
             />
         </div>
     );
 }
+```
