@@ -1,0 +1,741 @@
+# poker-calc-src-components Files
+
+### poker-calc\src\components\EditGameModal.tsx
+
+```tsx
+// src/components/EditGameModal.tsx
+import React, { useState, useEffect } from 'react';
+import { Player, GameWithPlayers } from '@/types/player';
+import { Plus, Trash2, X } from 'lucide-react';
+
+interface EditGameModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    game: GameWithPlayers | null;
+    onSave: (updatedGame: GameWithPlayers) => void;
+}
+
+export default function EditGameModal({ 
+    isOpen, 
+    onClose, 
+    game, 
+    onSave 
+}: EditGameModalProps) {
+    const [title, setTitle] = useState('');
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+    const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
+    const [previousNames, setPreviousNames] = useState<string[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (game && isOpen) {
+            setTitle(game.title);
+            setPlayers([...game.players]);
+            fetchPlayerNames();
+        }
+    }, [game, isOpen]);
+
+    const fetchPlayerNames = async () => {
+        try {
+            const response = await fetch('/api/players/names');
+            if (response.ok) {
+                const data = await response.json();
+                setPreviousNames(data.names || []);
+            }
+        } catch (error) {
+            console.error('Error fetching player names:', error);
+        }
+    };
+
+    if (!isOpen || !game) return null;
+
+    const addPlayer = () => {
+        const newPlayer: Player = {
+            id: Date.now().toString(),
+            name: "",
+            buyIn: 0,
+            cashOut: 0,
+            net: 0,
+            gameId: game._id,
+            rank: players.length + 1
+        };
+        setPlayers([...players, newPlayer]);
+    };
+
+    const removePlayer = (id: string) => {
+        setPlayers(players.filter((player) => player.id !== id));
+    };
+
+    const updatePlayer = (
+        id: string,
+        field: keyof Player,
+        value: string | number
+    ) => {
+        setPlayers(
+            players.map((player) => {
+                if (player.id === id) {
+                    const updated = { ...player, [field]: value };
+
+                    if (field === "buyIn" || field === "cashOut") {
+                        const buyIn = Math.round(updated.buyIn * 100) / 100;
+                        const cashOut = Math.round(updated.cashOut * 100) / 100;
+                        updated.net = Math.round((cashOut - buyIn) * 100) / 100;
+                    }
+
+                    return updated;
+                }
+                return player;
+            })
+        );
+    };
+
+    // Filter names for dropdown
+    const getFilteredNames = (playerId: string) => {
+        const searchTerm = searchTerms[playerId] || "";
+        const currentPlayerNames = players.map(p => p.name.toLowerCase());
+        return previousNames.filter((name) => 
+            name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !currentPlayerNames.includes(name.toLowerCase()) &&
+            name.toLowerCase() !== searchTerm.toLowerCase()
+        );
+    };
+
+    // Handle name selection from dropdown
+    const handleNameSelect = (playerId: string, name: string) => {
+        updatePlayer(playerId, "name", name);
+        setDropdownOpen(null);
+        setSearchTerms({ ...searchTerms, [playerId]: "" });
+    };
+
+    // Handle name input change
+    const handleNameInputChange = (playerId: string, value: string) => {
+        updatePlayer(playerId, "name", value);
+        setSearchTerms({ ...searchTerms, [playerId]: value });
+        if (value && getFilteredNames(playerId).length > 0) {
+            setDropdownOpen(playerId);
+        } else {
+            setDropdownOpen(null);
+        }
+    };
+
+    const getTotalNet = () => {
+        return players.reduce((sum, player) => sum + player.net, 0);
+    };
+
+    const isGameBalanced = () => {
+        return Math.abs(getTotalNet()) < 0.01;
+    };
+
+    const canSave = () => {
+        return (
+            title.trim() !== "" &&
+            players.length >= 2 &&
+            players.every((p) => p.name.trim() !== "") &&
+            isGameBalanced()
+        );
+    };
+
+    const formatCurrency = (amount: number) => {
+        return `$${Math.abs(amount).toFixed(2)}`;
+    };
+
+    const getBalanceMessage = () => {
+        const totalNet = getTotalNet();
+        if (Math.abs(totalNet) < 0.01) {
+            return <span className="text-green-400">Balanced ✓</span>;
+        } else if (totalNet > 0) {
+            return (
+                <span className="text-red-400">
+                    Over by {formatCurrency(totalNet)}
+                </span>
+            );
+        } else {
+            return (
+                <span className="text-red-400">
+                    Missing {formatCurrency(totalNet)}
+                </span>
+            );
+        }
+    };
+
+    const handleSave = async () => {
+        if (!canSave()) {
+            if (title.trim() === "") {
+                alert("Please enter a game title.");
+                return;
+            }
+            if (players.length < 2) {
+                alert("Please add at least 2 players.");
+                return;
+            }
+            if (players.some((p) => p.name.trim() === "")) {
+                alert("All players must have names.");
+                return;
+            }
+            if (!isGameBalanced()) {
+                alert(
+                    `Game is not balanced. Total net: ${formatCurrency(getTotalNet())}`
+                );
+                return;
+            }
+        }
+
+        setIsSubmitting(true);
+        try {
+            // Calculate new ranks based on net profit
+            const rankedPlayers = players
+                .sort((a, b) => b.net - a.net)
+                .map((player, index) => ({
+                    ...player,
+                    rank: index + 1
+                }));
+
+            const updatedGame: GameWithPlayers = {
+                ...game,
+                title: title.trim(),
+                totalAmount: players.reduce((sum, player) => sum + player.buyIn, 0),
+                playerCount: players.length,
+                players: rankedPlayers
+            };
+
+            onSave(updatedGame);
+        } catch (error) {
+            alert('Failed to save changes. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleClose = () => {
+        setTitle('');
+        setPlayers([]);
+        setSearchTerms({});
+        setDropdownOpen(null);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-custom-background rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-custom-primary">Edit Game</h3>
+                    <button 
+                        onClick={handleClose}
+                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+                
+                {/* Game Title Input */}
+                <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                    <label className="block text-sm font-medium text-custom-primary mb-2">
+                        Game Title
+                    </label>
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        placeholder="eg. Edwin's House - 69/69/69"
+                        required
+                    />
+                </div>
+
+                {/* Players Table */}
+                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
+                    <table className="w-full">
+                        <thead className="bg-custom-surface">
+                            <tr>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Player Name
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Buy-in
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Cash-out
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Net Gain/Loss
+                                </th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {players.map((player) => (
+                                <tr key={player.id} className="border-t border-custom">
+                                    <td className="py-3 px-4 relative">
+                                        <input
+                                            type="text"
+                                            value={player.name}
+                                            onChange={(e) => handleNameInputChange(player.id, e.target.value)}
+                                            onFocus={() => {
+                                                if (player.name && getFilteredNames(player.id).length > 0) {
+                                                    setDropdownOpen(player.id);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => setDropdownOpen(null), 150);
+                                            }}
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                                            placeholder="Enter or select name"
+                                            id={`edit-player-input-${player.id}`}
+                                        />
+                                        
+                                        {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
+                                            <div className="fixed z-60 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                                style={(() => {
+                                                    const element = document.getElementById(`edit-player-input-${player.id}`);
+                                                    if (!element) return {};
+                                                    const rect = element.getBoundingClientRect();
+                                                    return {
+                                                        top: `${rect.bottom + window.scrollY + 4}px`,
+                                                        left: `${rect.left + window.scrollX}px`,
+                                                        width: `${rect.width}px`
+                                                    };
+                                                })()}>
+                                                {getFilteredNames(player.id).map((name, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() => handleNameSelect(player.id, name)}
+                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.buyIn || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "buyIn",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={player.cashOut || ""}
+                                            onChange={(e) =>
+                                                updatePlayer(
+                                                    player.id,
+                                                    "cashOut",
+                                                    parseFloat(e.target.value) || 0
+                                                )
+                                            }
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            placeholder="0"
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <span
+                                            className={`font-semibold ${
+                                                player.net > 0
+                                                    ? "text-green-400"
+                                                    : player.net < 0
+                                                      ? "text-red-400"
+                                                      : "text-gray-400"
+                                            }`}
+                                        >
+                                            ${player.net.toFixed(2)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <button
+                                            onClick={() => removePlayer(player.id)}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
+                                            title="Delete player"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Add Player and Balance Summary */}
+                <div className="flex justify-between items-center mb-6">
+                    <button
+                        onClick={addPlayer}
+                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                        <Plus size={16} />
+                        Add Player
+                    </button>
+
+                    <div className="text-right">
+                        <div className="text-lg font-semibold mb-1">
+                            Total Net:{" "}
+                            <span
+                                className={`${
+                                    getTotalNet() > 0
+                                        ? "text-red-400"
+                                        : getTotalNet() < 0
+                                          ? "text-red-400"
+                                          : "text-green-400"
+                                }`}
+                            >
+                                {formatCurrency(getTotalNet())}
+                            </span>
+                        </div>
+                        <div className="text-sm">{getBalanceMessage()}</div>
+                    </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex justify-end gap-4">
+                    <button
+                        onClick={handleClose}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={!canSave() || isSubmitting}
+                        className={`px-6 py-2 rounded transition-colors ${
+                            canSave() && !isSubmitting
+                                ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
+                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                        {isSubmitting ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+```
+
+
+### poker-calc\src\components\Header.tsx
+
+```tsx
+import React from 'react';
+
+interface HeaderProps {
+  currentPage: 'payout' | 'leaderboard' | 'history';
+}
+
+export default function Header({ currentPage }: HeaderProps) {
+  const getLinkClass = (page: string) => {
+    return currentPage === page 
+      ? "text-custom-primary font-medium" 
+      : "text-custom-secondary hover:text-custom-primary transition-colors";
+  };
+
+  return (
+    <header className="bg-custom-background border-b border-custom px-6 py-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold text-custom-primary">Poker Payout Calculator</h1>
+        <nav className="flex">
+          <a href="/leaderboard" className={`${getLinkClass('leaderboard')} mr-6`}>
+            Leaderboard
+          </a>
+          <a href="/payout" className={`${getLinkClass('payout')} mr-6`}>
+            Payout
+          </a>
+          <a href="/history" className={getLinkClass('history')}>
+            Game History
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}
+```
+
+
+### poker-calc\src\components\PasswordModal.tsx
+
+```tsx
+import React, { useState } from 'react';
+
+interface PasswordModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    title?: string;
+}
+
+export default function PasswordModal({ 
+    isOpen, 
+    onClose, 
+    onSuccess,
+    title = "Enter Password"
+}: PasswordModalProps) {
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (password === 'liang123993') {
+            onSuccess();
+            setPassword('');
+            setError('');
+        } else {
+            setError('Incorrect password');
+        }
+    };
+
+    const handleClose = () => {
+        setPassword('');
+        setError('');
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
+            <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
+                <h3 className="text-lg font-semibold mb-4 text-custom-primary">{title}</h3>
+                
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => {
+                            setPassword(e.target.value);
+                            setError(''); // Clear error when typing
+                        }}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary mb-4"
+                        placeholder="Enter password"
+                        required
+                        autoFocus
+                    />
+                    
+                    {error && (
+                        <p className="text-red-400 text-sm mb-4">{error}</p>
+                    )}
+                    
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+```
+
+
+### poker-calc\src\components\PayoutSummaryModal.tsx
+
+```tsx
+// src/components/PayoutSummaryModal.tsx
+import React, { useState } from 'react';
+import { Player } from '@/types/player';
+
+interface Transfer {
+    from: string;
+    to: string;
+    amount: number;
+}
+
+interface PayoutSummaryModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    players: Player[];
+    onSubmit: (gameTitle: string) => void;
+}
+
+export default function PayoutSummaryModal({ 
+    isOpen, 
+    onClose, 
+    players, 
+    onSubmit 
+}: PayoutSummaryModalProps) {
+    const [gameTitle, setGameTitle] = useState('');
+    
+    if (!isOpen) return null;
+
+    const handleSubmit = () => {
+        if (!gameTitle.trim()) {
+            alert('Please enter a game title');
+            return;
+        }
+        onSubmit(gameTitle.trim());
+        setGameTitle(''); // Reset after submit
+    };
+
+    // Calculate optimal transfers
+    const calculateOptimalTransfers = (): Transfer[] => {
+        const debtors = players.filter(p => p.net < 0).map(p => ({ name: p.name, amount: Math.abs(p.net) }));
+        const creditors = players.filter(p => p.net > 0).map(p => ({ name: p.name, amount: p.net }));
+        
+        const transfers: Transfer[] = [];
+        
+        // Sort by amount for optimal matching
+        debtors.sort((a, b) => b.amount - a.amount);
+        creditors.sort((a, b) => b.amount - a.amount);
+        
+        let i = 0, j = 0;
+        
+        while (i < debtors.length && j < creditors.length) {
+            const debt = debtors[i].amount;
+            const credit = creditors[j].amount;
+            const transferAmount = Math.min(debt, credit);
+            
+            if (transferAmount > 0.01) { // Avoid tiny transfers due to floating point
+                transfers.push({
+                    from: debtors[i].name,
+                    to: creditors[j].name,
+                    amount: Math.round(transferAmount * 100) / 100
+                });
+            }
+            
+            debtors[i].amount -= transferAmount;
+            creditors[j].amount -= transferAmount;
+            
+            if (debtors[i].amount < 0.01) i++;
+            if (creditors[j].amount < 0.01) j++;
+        }
+        
+        return transfers;
+    };
+
+    const transfers = calculateOptimalTransfers();
+
+    const formatCurrency = (amount: number) => {
+        return `$${Math.abs(amount).toFixed(2)}`;
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-custom-background rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-custom-primary">Payout Summary</h3>
+                    <button 
+                        onClick={onClose}
+                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
+                    >
+                        ×
+                    </button>
+                </div>
+                
+                {/* Game Title Input */}
+                <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                    <label className="block text-sm font-medium text-custom-primary mb-2">
+                        Game Title
+                    </label>
+                    <input
+                        type="text"
+                        value={gameTitle}
+                        onChange={(e) => setGameTitle(e.target.value)}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        placeholder="eg. Edwin's House - 69/69/69"
+                        required
+                    />
+                </div>
+
+                {/* Results Table */}
+                <div className="overflow-x-auto mb-6">
+                    <table className="w-full">
+                        <thead className="bg-custom-surface-alt">
+                            <tr>
+                                <th className="text-left py-3 px-4 font-medium text-custom-primary">Rank</th>
+                                <th className="text-left py-3 px-4 font-medium text-custom-primary">Name</th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Buy-in</th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Cash-out</th>
+                                <th className="text-center py-3 px-4 font-medium text-custom-primary">Net</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {players
+                                .sort((a, b) => b.net - a.net)
+                                .map((player, index) => (
+                                    <tr key={player.id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
+                                        <td className="py-3 px-4 text-custom-primary font-semibold">#{index + 1}</td>
+                                        <td className="py-3 px-4 text-custom-primary">{player.name}</td>
+                                        <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.buyIn)}</td>
+                                        <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.cashOut)}</td>
+                                        <td className={`py-3 px-4 text-center font-semibold ${
+                                            player.net > 0 ? 'text-green-400' : 
+                                            player.net < 0 ? 'text-red-400' : 
+                                            'text-gray-400'
+                                        }`}>
+                                            {player.net >= 0 ? '+' : '-'}{formatCurrency(player.net)}
+                                        </td>
+                                    </tr>
+                                ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Payment Instructions */}
+                {transfers.length > 0 && (
+                    <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                        <h4 className="text-lg font-semibold text-custom-primary mb-3">Payment Instructions</h4>
+                        <div className="space-y-2">
+                            {transfers.map((transfer, index) => (
+                                <div key={index} className="flex items-center justify-between bg-custom-background p-3 rounded border border-custom">
+                                    <span className="text-custom-primary">
+                                        <span className="font-semibold text-red-400">{transfer.from}</span>
+                                        {' pays '}
+                                        <span className="font-semibold text-green-400">{transfer.to}</span>
+                                    </span>
+                                    <span className="font-bold text-custom-primary text-lg">
+                                        {formatCurrency(transfer.amount)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Actions */}
+                <div className="flex justify-center gap-4">
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Close
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Submit Game
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+```
