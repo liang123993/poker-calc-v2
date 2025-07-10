@@ -100,7 +100,7 @@ export default function PayoutSummaryModal({
                         value={gameTitle}
                         onChange={(e) => setGameTitle(e.target.value)}
                         className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
-                        placeholder="eg. Edwin's House - 69/69/69"
+                        placeholder="eg. Edwin's House - 12/34/56"
                         required
                     />
                 </div>
