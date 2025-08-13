@@ -15,18 +15,37 @@ export default function PasswordModal({
 }: PasswordModalProps) {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsVerifying(true);
+        setError('');
         
-        if (password === 'liang123993') {
-            onSuccess();
-            setPassword('');
-            setError('');
-        } else {
-            setError('Incorrect password');
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password }),
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                onSuccess();
+                setPassword('');
+                setError('');
+            } else {
+                setError(data.error || 'Incorrect password');
+            }
+        } catch (error) {
+            setError('Connection error. Please try again.');
+        } finally {
+            setIsVerifying(false);
         }
     };
 
@@ -47,9 +66,10 @@ export default function PasswordModal({
                         value={password}
                         onChange={(e) => {
                             setPassword(e.target.value);
-                            setError(''); // Clear error when typing
+                            setError('');
                         }}
-                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary mb-4"
+                        disabled={isVerifying}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary mb-4 disabled:opacity-50"
                         placeholder="Enter password"
                         required
                         autoFocus
@@ -63,15 +83,17 @@ export default function PasswordModal({
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                            disabled={isVerifying}
+                            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                            disabled={isVerifying}
+                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Submit
+                            {isVerifying ? 'Verifying...' : 'Submit'}
                         </button>
                     </div>
                 </form>
