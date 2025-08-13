@@ -6,6 +6,7 @@ export interface Player {
     cashOut: number;
     net: number;
     gameId?: string;
+    groupId?: string;
     rank?: number;
     createdAt?: Date;
     updatedAt?: Date;
@@ -20,6 +21,7 @@ export interface Transfer {
 export interface Game {
     _id: string;
     title: string;
+    groupId: string;
     totalAmount: number;
     playerCount: number;
     isBalanced: boolean;
@@ -36,6 +38,7 @@ export interface GameWithPlayers extends Game {
 export interface LeaderboardEntry {
     rank: number;
     playerName: string;
+    groupId: string;
     totalProfit: number;
     gamesPlayed: number;
     rankChange: 'up' | 'down' | 'same' | 'new';
@@ -90,6 +93,28 @@ export interface LeaderboardResponse {
 // Form types for creating games
 export interface GameSubmission {
     title: string;
+    groupId: string;
     players: Player[];
     transfers: Transfer[];
+}
+
+// Group types
+export interface Group {
+    _id: string;
+    name: string;
+    createdBy: string;
+    description: string;
+    isActive: boolean;
+    stats: {
+        totalGames: number;
+        totalPlayers: number;
+        lastGameDate: Date | null;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// API Response types
+export interface GroupsResponse {
+    groups: Group[];
 }
