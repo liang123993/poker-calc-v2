@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
+import PasswordModal from "@/components/PasswordModal";
 import { Group } from "@/types/player";
-import { Plus, Users, Calendar, Trophy } from "lucide-react";
+import { Plus, Users, Calendar, Trophy, Trash2 } from "lucide-react";
 
 interface CreateGroupModalProps {
     isOpen: boolean;
@@ -141,11 +142,63 @@ function CreateGroupModal({ isOpen, onClose, onSuccess }: CreateGroupModalProps)
     );
 }
 
+interface ConfirmDeleteModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    group: Group | null;
+}
+
+function ConfirmDeleteModal({ isOpen, onClose, onConfirm, group }: ConfirmDeleteModalProps) {
+    if (!isOpen || !group) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
+            <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
+                <h3 className="text-lg font-semibold mb-4 text-custom-primary">Confirm Delete Group</h3>
+                <div className="mb-6">
+                    <p className="text-custom-secondary mb-4">
+                        Are you sure you want to delete the group <span className="font-semibold text-custom-primary">"{group.name}"</span>?
+                    </p>
+                    <div className="bg-red-900/20 border border-red-600 rounded p-3 mb-4">
+                        <p className="text-red-200 text-sm font-semibold mb-2">⚠️ This will permanently delete:</p>
+                        <ul className="text-red-200 text-sm space-y-1">
+                            <li>• All {group.stats.totalGames} games in this group</li>
+                            <li>• All player records from these games</li>
+                            <li>• All leaderboard data for this group</li>
+                        </ul>
+                    </div>
+                    <p className="text-custom-secondary text-sm">
+                        This action cannot be undone.
+                    </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded transition-colors cursor-pointer"
+                    >
+                        Delete Group
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function GroupsPage() {
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
     useEffect(() => {
         fetchGroups();
@@ -172,6 +225,43 @@ export default function GroupsPage() {
     const handleCreateSuccess = (group: Group) => {
         setGroups(prevGroups => [group, ...prevGroups]);
         setShowCreateModal(false);
+    };
+
+    const handleDeleteClick = (group: Group) => {
+        setSelectedGroup(group);
+        setShowPasswordModal(true);
+    };
+
+    const handlePasswordSuccess = () => {
+        setShowPasswordModal(false);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedGroup) return;
+
+        try {
+            const response = await fetch(`/api/groups/${selectedGroup._id}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete group');
+            }
+
+            const result = await response.json();
+            
+            // Remove group from local state
+            setGroups(prevGroups => prevGroups.filter(g => g._id !== selectedGroup._id));
+            
+            setShowDeleteConfirm(false);
+            setSelectedGroup(null);
+            
+            alert(`Group "${selectedGroup.name}" and all associated data deleted successfully!`);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Failed to delete group');
+        }
     };
 
     const formatDate = (date: Date | string | null) => {
@@ -249,13 +339,22 @@ export default function GroupsPage() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {groups.map((group) => (
                             <div key={group._id} className="bg-custom-background border border-custom rounded-lg p-6 hover:border-custom-primary transition-colors">
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-semibold text-custom-primary mb-1">
-                                        {group.name}
-                                    </h3>
-                                    <p className="text-sm text-custom-secondary">
-                                        Created by {group.createdBy}
-                                    </p>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-semibold text-custom-primary mb-1">
+                                            {group.name}
+                                        </h3>
+                                        <p className="text-sm text-custom-secondary">
+                                            Created by {group.createdBy}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteClick(group)}
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer ml-2"
+                                        title="Delete group"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
 
                                 {group.description && (
@@ -300,6 +399,26 @@ export default function GroupsPage() {
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onSuccess={handleCreateSuccess}
+            />
+
+            <PasswordModal
+                isOpen={showPasswordModal}
+                onClose={() => {
+                    setShowPasswordModal(false);
+                    setSelectedGroup(null);
+                }}
+                onSuccess={handlePasswordSuccess}
+                title="Delete Group"
+            />
+
+            <ConfirmDeleteModal
+                isOpen={showDeleteConfirm}
+                onClose={() => {
+                    setShowDeleteConfirm(false);
+                    setSelectedGroup(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                group={selectedGroup}
             />
         </div>
     );
