@@ -211,7 +211,7 @@ export default function EditGameModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
             <div className="bg-custom-background rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-custom">
                 {/* Modal Header */}
                 <div className="flex justify-between items-center mb-6">
@@ -284,7 +284,7 @@ export default function EditGameModal({
                                         />
                                         
                                         {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
-                                            <div className="fixed z-60 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                            <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
                                                 style={(() => {
                                                     const element = document.getElementById(`edit-player-input-${player.id}`);
                                                     if (!element) return {};
