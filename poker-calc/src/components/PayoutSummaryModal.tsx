@@ -1,6 +1,6 @@
 // src/components/PayoutSummaryModal.tsx
 import React, { useState } from 'react';
-import { Player } from '@/types/player';
+import { Player, Group } from '@/types/player';
 
 interface Transfer {
     from: string;
@@ -12,6 +12,7 @@ interface PayoutSummaryModalProps {
     isOpen: boolean;
     onClose: () => void;
     players: Player[];
+    selectedGroup: Group | null;
     onSubmit: (gameTitle: string) => void;
 }
 
@@ -19,6 +20,7 @@ export default function PayoutSummaryModal({
     isOpen, 
     onClose, 
     players, 
+    selectedGroup,
     onSubmit 
 }: PayoutSummaryModalProps) {
     const [gameTitle, setGameTitle] = useState('');
@@ -28,6 +30,10 @@ export default function PayoutSummaryModal({
     const handleSubmit = () => {
         if (!gameTitle.trim()) {
             alert('Please enter a game title');
+            return;
+        }
+        if (!selectedGroup) {
+            alert('No group selected');
             return;
         }
         onSubmit(gameTitle.trim());
@@ -90,6 +96,15 @@ export default function PayoutSummaryModal({
                     </button>
                 </div>
                 
+                {/* Group Info */}
+                {selectedGroup && (
+                    <div className="mb-4 p-3 bg-custom-surface rounded-lg border border-custom">
+                        <div className="text-sm text-custom-secondary">
+                            Saving to group: <span className="text-custom-primary font-medium">{selectedGroup.name}</span>
+                        </div>
+                    </div>
+                )}
+                
                 {/* Game Title Input */}
                 <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
                     <label className="block text-sm font-medium text-custom-primary mb-2">
@@ -100,7 +115,7 @@ export default function PayoutSummaryModal({
                         value={gameTitle}
                         onChange={(e) => setGameTitle(e.target.value)}
                         className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
-                        placeholder="eg. Edwin's House - 12/34/56"
+                        placeholder="eg. Edwin's House - 69/69/69"
                         required
                     />
                 </div>
@@ -170,7 +185,8 @@ export default function PayoutSummaryModal({
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                        disabled={!selectedGroup}
+                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Submit Game
                     </button>
