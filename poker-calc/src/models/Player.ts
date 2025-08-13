@@ -27,6 +27,11 @@ const PlayerSchema = new mongoose.Schema(
             ref: "Game",
             required: true
         },
+        groupId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Group", 
+            required: true
+        },
         rank: {
             type: Number,
             required: true,
@@ -38,9 +43,9 @@ const PlayerSchema = new mongoose.Schema(
     }
 );
 
-// Compound indexes for efficient querying
-PlayerSchema.index({ gameId: 1, rank: 1 }); // Find players by game and rank
-PlayerSchema.index({ name: 1, createdAt: -1 }); // Find player history by name
-PlayerSchema.index({ name: 1 }); // General name lookup
+// Indexes including groupId
+PlayerSchema.index({ gameId: 1, rank: 1 }); // Keep existing for game queries
+PlayerSchema.index({ groupId: 1, name: 1, createdAt: -1 }); // Player history by group
+PlayerSchema.index({ name: 1, groupId: 1 }); // Name lookup within group
 
 export default mongoose.models.Player || mongoose.model("Player", PlayerSchema);

@@ -1,3 +1,4 @@
+// src/models/Game.ts
 import mongoose from "mongoose";
 
 const GameSchema = new mongoose.Schema(
@@ -6,6 +7,11 @@ const GameSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
+        },
+        groupId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Group",
+            required: true
         },
         totalAmount: {
             type: Number,
@@ -33,7 +39,9 @@ const GameSchema = new mongoose.Schema(
     }
 );
 
-GameSchema.index({ createdAt: -1 }); // Most recent games first
-GameSchema.index({ title: 1 }); // Search by title
+// Indexes including groupId
+GameSchema.index({ groupId: 1, createdAt: -1 }); // Games by group, most recent first
+GameSchema.index({ title: 1, groupId: 1 }); // Search by title within group
+GameSchema.index({ createdAt: -1 }); // Keep existing index for general queries
 
 export default mongoose.models.Game || mongoose.model("Game", GameSchema);

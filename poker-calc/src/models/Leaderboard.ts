@@ -1,3 +1,4 @@
+// src/models/Leaderboard.ts
 import mongoose from "mongoose";
 
 const LeaderboardSchema = new mongoose.Schema(
@@ -5,8 +6,12 @@ const LeaderboardSchema = new mongoose.Schema(
         playerName: { 
             type: String, 
             required: true,
-            trim: true,
-            unique: true // Each player appears only once in leaderboard
+            trim: true
+        },
+        groupId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Group",
+            required: true
         },
         totalProfit: { 
             type: Number, 
@@ -43,8 +48,12 @@ const LeaderboardSchema = new mongoose.Schema(
     }
 )
 
-LeaderboardSchema.index({ currentRank: 1 }); // Sort by current rank
-LeaderboardSchema.index({ totalProfit: -1 }); // Sort by profit (highest first)
-LeaderboardSchema.index({ playerName: 1 }); // Quick player lookup
+// Indexes including groupId
+LeaderboardSchema.index({ groupId: 1, currentRank: 1 }); // Leaderboard by group
+LeaderboardSchema.index({ groupId: 1, totalProfit: -1 }); // Sort by profit within group
+LeaderboardSchema.index({ playerName: 1, groupId: 1 }); // Unique player per group lookup
+
+// Compound unique index to ensure one leaderboard entry per player per group
+LeaderboardSchema.index({ playerName: 1, groupId: 1 }, { unique: true });
 
 export default mongoose.models.Leaderboard || mongoose.model("Leaderboard", LeaderboardSchema);
