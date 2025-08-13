@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
+import GroupSelector from "@/components/GroupSelector";
+import { useGroupSelection } from "@/hooks/useGroupSelection";
 import PasswordModal from "@/components/PasswordModal";
 import EditGameModal from "@/components/EditGameModal";
 import { Game, Player, GameWithPlayers } from "@/types/player";
@@ -30,7 +32,7 @@ function GameDetailsModal({ isOpen, onClose, game, onEdit, onDelete }: GameDetai
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-custom-background rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">{game.title}</h3>
@@ -119,7 +121,7 @@ function ConfirmDeleteModal({ isOpen, onClose, onConfirm, gameName }: ConfirmDel
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
             <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
                 <h3 className="text-lg font-semibold mb-4 text-custom-primary">Confirm Delete</h3>
                 <p className="text-custom-secondary mb-6">
@@ -156,14 +158,28 @@ export default function GameHistoryPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [pendingAction, setPendingAction] = useState<'edit' | 'delete' | null>(null);
 
+    // Group selection
+    const { 
+        groups, 
+        selectedGroupId, 
+        selectedGroup, 
+        setSelectedGroupId, 
+        loading: groupsLoading 
+    } = useGroupSelection('history-selected-group');
+
     useEffect(() => {
-        fetchGames();
-    }, []);
+        if (selectedGroupId) {
+            fetchGames();
+        }
+    }, [selectedGroupId]);
 
     const fetchGames = async () => {
+        if (!selectedGroupId) return;
+        
         try {
             setLoading(true);
-            const response = await fetch('/api/games?limit=1000'); // Fetch up to 1000 games
+            const url = `/api/games?limit=1000&groupId=${selectedGroupId}`;
+            const response = await fetch(url);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch games');
@@ -228,8 +244,6 @@ export default function GameHistoryPage() {
     };
 
     const handleDelete = () => {
-        // Close the details modal first
-        setShowDetails(false);
         setPendingAction('delete');
         setShowPasswordModal(true);
     };
@@ -301,6 +315,7 @@ export default function GameHistoryPage() {
             }
             
             setShowDeleteConfirm(false);
+            setShowDetails(false);
             setSelectedGame(null);
             await fetchGames(); // Refresh the list
             alert('Game deleted successfully!');
@@ -309,40 +324,13 @@ export default function GameHistoryPage() {
         }
     };
 
-    const handleCancelDelete = () => {
-        setShowDeleteConfirm(false);
-        setSelectedGame(null);
-    };
-
-    const handleClosePasswordModal = () => {
-        setShowPasswordModal(false);
-        setPendingAction(null);
-        // If we were trying to delete, restore the details modal
-        if (pendingAction === 'delete') {
-            setShowDetails(true);
-        }
-    };
-
-    if (loading) {
+    if (groupsLoading) {
         return (
             <div className="min-h-screen bg-custom-background text-custom-primary">
                 <Header currentPage="history" />
                 <main className="px-6 py-8">
                     <div className="flex justify-center items-center h-64">
-                        <div className="text-custom-secondary">Loading game history...</div>
-                    </div>
-                </main>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-custom-background text-custom-primary">
-                <Header currentPage="history" />
-                <main className="px-6 py-8">
-                    <div className="flex justify-center items-center h-64">
-                        <div className="text-red-400">Error: {error}</div>
+                        <div className="text-custom-secondary">Loading...</div>
                     </div>
                 </main>
             </div>
@@ -357,101 +345,137 @@ export default function GameHistoryPage() {
                     <h2 className="text-2xl font-bold text-custom-primary">
                         Game History
                     </h2>
-                    <button
-                        onClick={fetchGames}
-                        className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer"
-                    >
-                        Refresh
-                    </button>
-                </div>
-
-                {/* Search Bar */}
-                <div className="mb-6">
-                    <div className="relative max-w-md">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-custom-secondary" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search by player name or game title..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-custom-surface border border-custom rounded-lg pl-10 pr-4 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                    <div className="flex items-center gap-4">
+                        <GroupSelector
+                            groups={groups}
+                            selectedGroupId={selectedGroupId}
+                            onGroupChange={setSelectedGroupId}
+                            loading={groupsLoading}
+                            label="Filter by Group"
+                            placeholder="Select a group to view..."
                         />
+                        <button
+                            onClick={fetchGames}
+                            disabled={!selectedGroupId}
+                            className="bg-custom-primary hover:opacity-80 text-white px-4 py-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Refresh
+                        </button>
                     </div>
                 </div>
 
-                {filteredGames.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="text-custom-secondary text-lg mb-4">
-                            {searchTerm ? 'No games found matching your search' : 'No games found'}
-                        </div>
-                        {searchTerm && (
-                            <button
-                                onClick={() => setSearchTerm('')}
-                                className="text-custom-primary hover:opacity-80 underline"
-                            >
-                                Clear search
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    <div className="bg-custom-background border border-custom rounded-lg overflow-hidden">
-                        <table className="w-full table-fixed">
-                            <colgroup>
-                                <col className="w-2/5" />
-                                <col className="w-1/5" />
-                                <col className="w-1/5" />
-                                <col className="w-1/5" />
-                            </colgroup>
-                            <thead className="bg-custom-surface">
-                                <tr>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">Title</th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">Players</th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">Total Amount</th>
-                                    <th className="text-center py-4 px-4 font-medium text-custom-primary">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredGames.map((game, index) => (
-                                    <tr key={game._id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
-                                        <td className="py-4 px-4 text-center">
-                                            <div className="font-semibold text-custom-primary">{game.title}</div>
-                                            <div className="text-sm text-custom-secondary">
-                                                {new Date(game.createdAt).toLocaleDateString()}
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 text-center text-custom-primary">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <Users size={16} />
-                                                <span>{game.playerCount}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 text-center text-custom-primary">
-                                            <span>{formatCurrency(game.totalAmount)}</span>
-                                        </td>
-                                        <td className="py-4 px-4 text-center">
-                                            <button
-                                                onClick={() => handleShowDetails(game)}
-                                                className="bg-custom-primary hover:opacity-80 text-white px-3 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 mx-auto"
-                                            >
-                                                <Eye size={16} />
-                                                Show Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {!selectedGroupId && !groupsLoading && (
+                    <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg">
+                        <p className="text-yellow-200">
+                            Please select a group above to view game history. If no groups exist, 
+                            <a href="/groups" className="text-yellow-100 underline ml-1">create one first</a>.
+                        </p>
                     </div>
                 )}
 
-                {filteredGames.length > 0 && (
-                    <div className="mt-6 text-center text-custom-secondary text-sm">
-                        Showing {filteredGames.length} of {games.length} games
-                    </div>
+                {selectedGroupId && (
+                    <>
+                        {/* Search Bar */}
+                        <div className="mb-6">
+                            <div className="relative max-w-md">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-custom-secondary" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by player name or game title..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-custom-surface border border-custom rounded-lg pl-10 pr-4 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                                />
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="flex justify-center items-center h-64">
+                                <div className="text-custom-secondary">Loading game history...</div>
+                            </div>
+                        ) : error ? (
+                            <div className="flex justify-center items-center h-64">
+                                <div className="text-red-400">Error: {error}</div>
+                            </div>
+                        ) : filteredGames.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-custom-secondary text-lg mb-4">
+                                    {searchTerm ? 'No games found matching your search' : 'No games found'}
+                                </div>
+                                {searchTerm ? (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="text-custom-primary hover:opacity-80 underline"
+                                    >
+                                        Clear search
+                                    </button>
+                                ) : selectedGroup ? (
+                                    <div className="text-custom-secondary">
+                                        No games in "{selectedGroup.name}" yet. <a href="/payout" className="text-custom-primary underline">Add some games!</a>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden">
+                                    <table className="w-full table-fixed">
+                                        <colgroup>
+                                            <col className="w-2/5" />
+                                            <col className="w-1/5" />
+                                            <col className="w-1/5" />
+                                            <col className="w-1/5" />
+                                        </colgroup>
+                                        <thead className="bg-custom-surface">
+                                            <tr>
+                                                <th className="text-center py-4 px-4 font-medium text-custom-primary">Title</th>
+                                                <th className="text-center py-4 px-4 font-medium text-custom-primary">Players</th>
+                                                <th className="text-center py-4 px-4 font-medium text-custom-primary">Total Amount</th>
+                                                <th className="text-center py-4 px-4 font-medium text-custom-primary">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredGames.map((game, index) => (
+                                                <tr key={game._id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
+                                                    <td className="py-4 px-4 text-center">
+                                                        <div className="font-semibold text-custom-primary">{game.title}</div>
+                                                        <div className="text-sm text-custom-secondary">
+                                                            {new Date(game.createdAt).toLocaleDateString()}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4 text-center text-custom-primary">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <Users size={16} />
+                                                            <span>{game.playerCount}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4 text-center text-custom-primary">
+                                                        <span>{formatCurrency(game.totalAmount)}</span>
+                                                    </td>
+                                                    <td className="py-4 px-4 text-center">
+                                                        <button
+                                                            onClick={() => handleShowDetails(game)}
+                                                            className="bg-custom-primary hover:opacity-80 text-white px-3 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 mx-auto"
+                                                        >
+                                                            <Eye size={16} />
+                                                            Show Details
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-6 text-center text-custom-secondary text-sm">
+                                    Showing {filteredGames.length} of {games.length} games
+                                    {selectedGroup && <span> in "{selectedGroup.name}"</span>}
+                                </div>
+                            </>
+                        )}
+                    </>
                 )}
             </main>
 
-            {/* Modals - Order matters for z-index */}
             <GameDetailsModal
                 isOpen={showDetails}
                 onClose={() => {
@@ -475,14 +499,17 @@ export default function GameHistoryPage() {
 
             <PasswordModal
                 isOpen={showPasswordModal}
-                onClose={handleClosePasswordModal}
+                onClose={() => {
+                    setShowPasswordModal(false);
+                    setPendingAction(null);
+                }}
                 onSuccess={handlePasswordSuccess}
                 title={pendingAction === 'edit' ? 'Edit Game' : 'Delete Game'}
             />
 
             <ConfirmDeleteModal
                 isOpen={showDeleteConfirm}
-                onClose={handleCancelDelete}
+                onClose={() => setShowDeleteConfirm(false)}
                 onConfirm={handleConfirmDelete}
                 gameName={selectedGame?.title || ''}
             />
