@@ -3,13 +3,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import Player from "@/models/Player";
 
-// GET /api/players/names → fetch unique player names for dropdown
+// GET /api/players/names → fetch unique player names for dropdown (with optional group filtering)
 export async function GET(req: NextRequest) {
     try {
         await dbConnect();
         
+        const url = new URL(req.url);
+        const groupId = url.searchParams.get('groupId'); // Filter by group
+        
+        // Build query based on groupId
+        let query: any = {};
+        if (groupId) {
+            query.groupId = groupId;
+        }
+        
         // Get all unique player names from the database
-        const uniqueNames = await Player.distinct("name");
+        const uniqueNames = await Player.distinct("name", query);
         
         // Sort alphabetically and filter out empty names
         const sortedNames = uniqueNames
@@ -17,7 +26,8 @@ export async function GET(req: NextRequest) {
             .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
         
         return NextResponse.json({
-            names: sortedNames
+            names: sortedNames,
+            groupId: groupId || null
         });
         
     } catch (error) {

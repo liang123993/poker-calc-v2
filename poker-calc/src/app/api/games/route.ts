@@ -5,7 +5,7 @@ import Game from "@/models/Game";
 import Player from "@/models/Player";
 import Leaderboard from "@/models/Leaderboard";
 
-// GET, fetch all games
+// GET, fetch all games (with optional group filtering)
 export async function GET(req: NextRequest) {
     try {
         await dbConnect() // connect to mongoDB
@@ -14,15 +14,21 @@ export async function GET(req: NextRequest) {
         const page = parseInt(url.searchParams.get('page') || '1'); // which page of results
         const limit = parseInt(url.searchParams.get('limit') || '10'); // how many games per page
         const search = url.searchParams.get('search') || ''; // search item
+        const groupId = url.searchParams.get('groupId'); // filter by group
 
         const skip = (page - 1) * limit;
         
         // Build search query
-        let searchQuery = {};
+        let searchQuery: any = {};
+        
+        // Add group filter if provided
+        if (groupId) {
+            searchQuery.groupId = groupId;
+        }
+        
+        // Add text search if provided
         if (search) {
-            searchQuery = {
-                title: { $regex: search, $options: 'i' }
-            }
+            searchQuery.title = { $regex: search, $options: 'i' };
         }
 
         const games = await Game.find(searchQuery) // finds game
@@ -61,11 +67,20 @@ export async function POST(req: NextRequest) {
         await dbConnect();
         
         const body = await req.json();
-        const { title, players, transfers } = body;
+        const { title, groupId, players, transfers } = body;
         
-        if (!title || !players || !Array.isArray(players) || players.length < 2) {
+        if (!title || !groupId || !players || !Array.isArray(players) || players.length < 2) {
             return NextResponse.json({ 
                 error: "Missing required fields or invalid data" 
+            }, { status: 400 });
+        }
+
+        // Verify group exists
+        const Group = (await import("@/models/Group")).default;
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return NextResponse.json({ 
+                error: "Invalid group ID" 
             }, { status: 400 });
         }
 
@@ -90,6 +105,7 @@ export async function POST(req: NextRequest) {
         // Create the game
         const newGame = await Game.create({
             title,
+            groupId,
             totalAmount,
             playerCount,
             isBalanced: true,
@@ -105,14 +121,18 @@ export async function POST(req: NextRequest) {
                 cashOut: player.cashOut,
                 net: player.net,
                 gameId: newGame._id,
+                groupId: groupId,
                 rank: index + 1
             }));
 
         // Create player entries
         await Player.insertMany(rankedPlayers);
         
-        // Update leaderboard for each player
-        await updateLeaderboard(rankedPlayers);
+        // Update leaderboard for each player in this group
+        await updateLeaderboard(rankedPlayers, groupId);
+        
+        // Update group stats
+        await updateGroupStats(groupId);
         
         return NextResponse.json({
             success: true,
@@ -126,19 +146,67 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// Helper function to update leaderboard (with case-insensitive lookup)
-async function updateLeaderboard(players: any[]) {
+// Helper function to update group statistics
+async function updateGroupStats(groupId: string) {
+    try {
+        const Group = (await import("@/models/Group")).default;
+        const mongoose = await import("mongoose");
+        
+        // Get game count and last game date for this group
+        const gameStats = await Game.aggregate([
+            { $match: { groupId: new mongoose.default.Types.ObjectId(groupId) } },
+            {
+                $group: {
+                    _id: null,
+                    totalGames: { $sum: 1 },
+                    lastGameDate: { $max: "$createdAt" }
+                }
+            }
+        ]);
+
+        // Get unique player count for this group
+        const playerStats = await Player.aggregate([
+            { $match: { groupId: new mongoose.default.Types.ObjectId(groupId) } },
+            {
+                $group: {
+                    _id: "$name"
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPlayers: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const stats = {
+            totalGames: gameStats[0]?.totalGames || 0,
+            totalPlayers: playerStats[0]?.totalPlayers || 0,
+            lastGameDate: gameStats[0]?.lastGameDate || null
+        };
+
+        await Group.findByIdAndUpdate(groupId, { stats });
+    } catch (error) {
+        console.error('Error updating group stats:', error);
+    }
+}
+
+// Helper function to update leaderboard (with group awareness)
+async function updateLeaderboard(players: any[], groupId: string) {
     for (const player of players) {
         try {
-            // Use case-insensitive lookup for existing leaderboard entry
+            // Use case-insensitive lookup for existing leaderboard entry within this group
             let leaderboardEntry = await Leaderboard.findOne({ 
-                playerName: { $regex: new RegExp(`^${player.name}$`, 'i') }
+                playerName: { $regex: new RegExp(`^${player.name}$`, 'i') },
+                groupId: groupId
             });
             
             if (!leaderboardEntry) {
-                // New player - create entry with normalized name
+                // New player in this group - create entry with normalized name
                 leaderboardEntry = await Leaderboard.create({
                     playerName: player.name, // Already normalized
+                    groupId: groupId,
                     totalProfit: player.net,
                     gamesPlayed: 1,
                     currentRank: 999999, // Will be updated later
@@ -146,7 +214,7 @@ async function updateLeaderboard(players: any[]) {
                     rankChange: 'new'
                 });
             } else {
-                // Existing player - update stats and normalize the name if needed
+                // Existing player in this group - update stats and normalize the name if needed
                 if (leaderboardEntry.playerName !== player.name) {
                     leaderboardEntry.playerName = player.name; // Update to normalized version
                 }
@@ -159,15 +227,15 @@ async function updateLeaderboard(players: any[]) {
         }
     }
     
-    // Recalculate ranks for all players
-    await updateAllRanks();
+    // Recalculate ranks for all players in this group
+    await updateAllRanks(groupId);
 }
 
-// Helper function to recalculate all ranks
-async function updateAllRanks() {
+// Helper function to recalculate all ranks within a group
+async function updateAllRanks(groupId: string) {
     try {
-        // Get all players sorted by total profit (highest first)
-        const allPlayers = await Leaderboard.find({})
+        // Get all players in this group sorted by total profit (highest first)
+        const allPlayers = await Leaderboard.find({ groupId })
             .sort({ totalProfit: -1 });
         
         // Update ranks and track changes
