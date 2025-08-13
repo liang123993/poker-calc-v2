@@ -1,8 +1,11 @@
+// src/app/payout/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { Player, Transfer } from "@/types/player";
 import Header from "@/components/Header";
+import GroupSelector from "@/components/GroupSelector";
+import { useGroupSelection } from "@/hooks/useGroupSelection";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import PayoutSummaryModal from "@/components/PayoutSummaryModal";
 import PasswordModal from "@/components/PasswordModal";
@@ -17,14 +20,28 @@ export default function PayoutPage() {
     const [pendingGameTitle, setPendingGameTitle] = useState<string>("");
     const [previousNames, setPreviousNames] = useState<string[]>([]);
 
-    // Fetch player names from database
+    // Group selection
+    const { 
+        groups, 
+        selectedGroupId, 
+        selectedGroup, 
+        setSelectedGroupId, 
+        loading: groupsLoading 
+    } = useGroupSelection('payout-selected-group');
+
+    // Fetch player names from database (filtered by selected group)
     useEffect(() => {
-        fetchPlayerNames();
-    }, []);
+        if (selectedGroupId) {
+            fetchPlayerNames();
+        }
+    }, [selectedGroupId]);
 
     const fetchPlayerNames = async () => {
         try {
-            const response = await fetch('/api/players/names');
+            const url = selectedGroupId 
+                ? `/api/players/names?groupId=${selectedGroupId}`
+                : '/api/players/names';
+            const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
                 setPreviousNames(data.names || []);
@@ -122,6 +139,7 @@ export default function PayoutPage() {
     // Check if we can calculate
     const canCalculate = () => {
         return (
+            selectedGroupId && // Must have a group selected
             players.length >= 2 &&
             players.every((p) => p.name.trim() !== "") &&
             isGameBalanced()
@@ -156,6 +174,10 @@ export default function PayoutPage() {
     // Handle calculate button click
     const handleCalculate = () => {
         if (!canCalculate()) {
+            if (!selectedGroupId) {
+                alert("Please select a group first.");
+                return;
+            }
             if (players.length < 2) {
                 alert("Please add at least 2 players.");
                 return;
@@ -176,12 +198,17 @@ export default function PayoutPage() {
 
     // Save game to database
     const saveGameToDatabase = async (gameTitle: string) => {
+        if (!selectedGroupId) {
+            throw new Error("No group selected");
+        }
+
         setIsSubmitting(true);
         try {
             const transfers = calculateOptimalTransfers();
             
             const gameData = {
                 title: gameTitle,
+                groupId: selectedGroupId,
                 players: players.map(player => ({
                     name: player.name,
                     buyIn: player.buyIn,
@@ -252,9 +279,28 @@ export default function PayoutPage() {
         <div className="min-h-screen bg-custom-background text-custom-primary">
             <Header currentPage="payout" />
             <main className="px-6 py-8">
-                <h2 className="text-2xl font-bold mb-6 text-custom-primary">
-                    Payout Entry
-                </h2>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-custom-primary">
+                        Payout Entry
+                    </h2>
+                    <GroupSelector
+                        groups={groups}
+                        selectedGroupId={selectedGroupId}
+                        onGroupChange={setSelectedGroupId}
+                        loading={groupsLoading}
+                        label="Save to Group"
+                        placeholder="Select a group to save games..."
+                    />
+                </div>
+
+                {!selectedGroupId && !groupsLoading && (
+                    <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg">
+                        <p className="text-yellow-200">
+                            Please select a group above to save your game. If no groups exist, 
+                            <a href="/groups" className="text-yellow-100 underline ml-1">create one first</a>.
+                        </p>
+                    </div>
+                )}
                 
                 <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
                     <table className="w-full">
@@ -426,12 +472,19 @@ export default function PayoutPage() {
                         {isSubmitting ? "Saving..." : "Calculate"}
                     </button>
                 </div>
+
+                {selectedGroup && (
+                    <div className="mt-4 text-center text-custom-secondary text-sm">
+                        Game will be saved to: <span className="text-custom-primary font-medium">{selectedGroup.name}</span>
+                    </div>
+                )}
             </main>
 
             <PayoutSummaryModal
                 isOpen={showSummary}
                 onClose={() => setShowSummary(false)}
                 players={players}
+                selectedGroup={selectedGroup}
                 onSubmit={(gameTitle) => {
                     setPendingGameTitle(gameTitle);
                     setShowPasswordModal(true);
