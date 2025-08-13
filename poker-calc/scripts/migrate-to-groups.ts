@@ -1,13 +1,30 @@
 // scripts/migrate-to-groups.ts
 // Run this script once to migrate existing data to the groups system
 
-import { dbConnect } from "../src/lib/mongoose";
-import Group from "../src/models/Group";
-import Game from "../src/models/Game";
-import Player from "../src/models/Player";
-import Leaderboard from "../src/models/Leaderboard";
+// Load environment variables FIRST, before any other imports
+import { config } from 'dotenv';
+import { join } from 'path';
 
-async function migrateToGroups() {
+// Load .env.local file
+config({ path: join(process.cwd(), '.env.local') });
+
+// Verify environment variable is loaded
+console.log('🔍 Checking environment variables...');
+if (!process.env.MONGODB_URI) {
+    console.error('❌ MONGODB_URI not found in environment variables');
+    console.error('Make sure .env.local exists and contains MONGODB_URI');
+    process.exit(1);
+}
+console.log('✅ MONGODB_URI found');
+
+// Now import the database modules
+async function loadModulesAndMigrate() {
+    const { dbConnect } = await import("../src/lib/mongoose");
+    const Group = (await import("../src/models/Group")).default;
+    const Game = (await import("../src/models/Game")).default;
+    const Player = (await import("../src/models/Player")).default;
+    const Leaderboard = (await import("../src/models/Leaderboard")).default;
+
     try {
         await dbConnect();
         console.log("🔄 Starting migration to groups system...");
@@ -89,7 +106,7 @@ async function migrateToGroups() {
 
 // Run migration if this file is executed directly
 if (require.main === module) {
-    migrateToGroups()
+    loadModulesAndMigrate()
         .then(() => {
             console.log("🎉 Migration script completed!");
             process.exit(0);
@@ -100,4 +117,4 @@ if (require.main === module) {
         });
 }
 
-export default migrateToGroups;
+export default loadModulesAndMigrate;
