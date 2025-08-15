@@ -194,19 +194,22 @@ async function updateGroupStats(groupId: string) {
 
 // Helper function to update leaderboard (with group awareness)
 async function updateLeaderboard(players: any[], groupId: string) {
+    const mongoose = await import("mongoose");
+    
     for (const player of players) {
         try {
-            // Use case-insensitive lookup for existing leaderboard entry within this group
+            // CRITICAL: Use case-insensitive lookup BUT only within this specific group
             let leaderboardEntry = await Leaderboard.findOne({ 
                 playerName: { $regex: new RegExp(`^${player.name}$`, 'i') },
-                groupId: groupId
+                groupId: new mongoose.default.Types.ObjectId(groupId) // Ensure this is an ObjectId
             });
             
             if (!leaderboardEntry) {
                 // New player in this group - create entry with normalized name
+                console.log(`Creating new leaderboard entry for ${player.name} in group ${groupId}`);
                 leaderboardEntry = await Leaderboard.create({
                     playerName: player.name, // Already normalized
-                    groupId: groupId,
+                    groupId: new mongoose.default.Types.ObjectId(groupId),
                     totalProfit: player.net,
                     gamesPlayed: 1,
                     currentRank: 999999, // Will be updated later
@@ -215,6 +218,7 @@ async function updateLeaderboard(players: any[], groupId: string) {
                 });
             } else {
                 // Existing player in this group - update stats and normalize the name if needed
+                console.log(`Updating existing leaderboard entry for ${player.name} in group ${groupId}`);
                 if (leaderboardEntry.playerName !== player.name) {
                     leaderboardEntry.playerName = player.name; // Update to normalized version
                 }
@@ -223,20 +227,25 @@ async function updateLeaderboard(players: any[], groupId: string) {
                 await leaderboardEntry.save();
             }
         } catch (error) {
-            console.error(`Error updating leaderboard for ${player.name}:`, error);
+            console.error(`Error updating leaderboard for ${player.name} in group ${groupId}:`, error);
         }
     }
     
-    // Recalculate ranks for all players in this group
+    // Recalculate ranks for all players in this specific group only
     await updateAllRanks(groupId);
 }
 
 // Helper function to recalculate all ranks within a group
 async function updateAllRanks(groupId: string) {
     try {
-        // Get all players in this group sorted by total profit (highest first)
-        const allPlayers = await Leaderboard.find({ groupId })
-            .sort({ totalProfit: -1 });
+        const mongoose = await import("mongoose");
+        
+        // Get all players in this specific group sorted by total profit (highest first)
+        const allPlayers = await Leaderboard.find({ 
+            groupId: new mongoose.default.Types.ObjectId(groupId) 
+        }).sort({ totalProfit: -1 });
+        
+        console.log(`Updating ranks for ${allPlayers.length} players in group ${groupId}`);
         
         // Update ranks and track changes
         for (let i = 0; i < allPlayers.length; i++) {
@@ -262,6 +271,6 @@ async function updateAllRanks(groupId: string) {
             await player.save();
         }
     } catch (error) {
-        console.error('Error updating ranks:', error);
+        console.error('Error updating ranks for group:', groupId, error);
     }
 }
