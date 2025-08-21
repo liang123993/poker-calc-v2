@@ -1,6 +1,7 @@
 // src/components/PayoutSummaryModal.tsx
 import React, { useState } from 'react';
 import { Player, Group } from '@/types/player';
+import { Loader2 } from 'lucide-react';
 
 interface Transfer {
     from: string;
@@ -14,6 +15,7 @@ interface PayoutSummaryModalProps {
     players: Player[];
     selectedGroup: Group | null;
     onSubmit: (gameTitle: string) => void;
+    isSubmitting?: boolean; // Add this prop
 }
 
 export default function PayoutSummaryModal({ 
@@ -21,7 +23,8 @@ export default function PayoutSummaryModal({
     onClose, 
     players, 
     selectedGroup,
-    onSubmit 
+    onSubmit,
+    isSubmitting = false
 }: PayoutSummaryModalProps) {
     const [gameTitle, setGameTitle] = useState('');
     
@@ -36,8 +39,18 @@ export default function PayoutSummaryModal({
             alert('No group selected');
             return;
         }
+        if (isSubmitting) {
+            return; // Prevent double submission
+        }
         onSubmit(gameTitle.trim());
         setGameTitle(''); // Reset after submit
+    };
+
+    const handleClose = () => {
+        if (isSubmitting) {
+            return; // Prevent closing during submission
+        }
+        onClose();
     };
 
     // Calculate optimal transfers
@@ -89,12 +102,27 @@ export default function PayoutSummaryModal({
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">Payout Summary</h3>
                     <button 
-                        onClick={onClose}
-                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
+                        onClick={handleClose}
+                        disabled={isSubmitting}
+                        className={`text-2xl transition-colors ${
+                            isSubmitting 
+                                ? 'text-gray-500 cursor-not-allowed' 
+                                : 'text-custom-secondary hover:text-custom-primary cursor-pointer'
+                        }`}
                     >
                         ×
                     </button>
                 </div>
+                
+                {/* Loading overlay */}
+                {isSubmitting && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-lg">
+                        <div className="bg-custom-background p-4 rounded-lg border border-custom flex items-center gap-3">
+                            <Loader2 className="animate-spin text-custom-primary" size={24} />
+                            <span className="text-custom-primary font-medium">Saving game...</span>
+                        </div>
+                    </div>
+                )}
                 
                 {/* Group Info */}
                 {selectedGroup && (
@@ -114,7 +142,8 @@ export default function PayoutSummaryModal({
                         type="text"
                         value={gameTitle}
                         onChange={(e) => setGameTitle(e.target.value)}
-                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        disabled={isSubmitting}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="eg. Edwin's House - 69/69/69"
                         required
                     />
@@ -178,17 +207,27 @@ export default function PayoutSummaryModal({
                 {/* Modal Actions */}
                 <div className="flex justify-center gap-4">
                     <button
-                        onClick={onClose}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                        onClick={handleClose}
+                        disabled={isSubmitting}
+                        className={`px-6 py-2 rounded transition-colors ${
+                            isSubmitting
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-600 hover:bg-gray-500 text-white cursor-pointer'
+                        }`}
                     >
                         Close
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={!selectedGroup}
-                        className="bg-custom-primary hover:opacity-80 text-white px-6 py-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!selectedGroup || isSubmitting || !gameTitle.trim()}
+                        className={`px-6 py-2 rounded transition-colors flex items-center gap-2 ${
+                            (!selectedGroup || isSubmitting || !gameTitle.trim())
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                : 'bg-custom-primary hover:opacity-80 text-white cursor-pointer'
+                        }`}
                     >
-                        Submit Game
+                        {isSubmitting && <Loader2 className="animate-spin" size={16} />}
+                        {isSubmitting ? 'Submitting...' : 'Submit Game'}
                     </button>
                 </div>
             </div>
