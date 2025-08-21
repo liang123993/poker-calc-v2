@@ -1,7 +1,7 @@
 // src/components/EditGameModal.tsx
 import React, { useState, useEffect } from 'react';
 import { Player, GameWithPlayers } from '@/types/player';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Loader2 } from 'lucide-react';
 
 interface EditGameModalProps {
     isOpen: boolean;
@@ -46,6 +46,8 @@ export default function EditGameModal({
     if (!isOpen || !game) return null;
 
     const addPlayer = () => {
+        if (isSubmitting) return;
+        
         const newPlayer: Player = {
             id: Date.now().toString(),
             name: "",
@@ -59,6 +61,7 @@ export default function EditGameModal({
     };
 
     const removePlayer = (id: string) => {
+        if (isSubmitting) return;
         setPlayers(players.filter((player) => player.id !== id));
     };
 
@@ -67,6 +70,8 @@ export default function EditGameModal({
         field: keyof Player,
         value: string | number
     ) => {
+        if (isSubmitting) return;
+        
         setPlayers(
             players.map((player) => {
                 if (player.id === id) {
@@ -98,6 +103,7 @@ export default function EditGameModal({
 
     // Handle name selection from dropdown
     const handleNameSelect = (playerId: string, name: string) => {
+        if (isSubmitting) return;
         updatePlayer(playerId, "name", name);
         setDropdownOpen(null);
         setSearchTerms({ ...searchTerms, [playerId]: "" });
@@ -105,6 +111,7 @@ export default function EditGameModal({
 
     // Handle name input change
     const handleNameInputChange = (playerId: string, value: string) => {
+        if (isSubmitting) return;
         updatePlayer(playerId, "name", value);
         setSearchTerms({ ...searchTerms, [playerId]: value });
         if (value && getFilteredNames(playerId).length > 0) {
@@ -127,7 +134,8 @@ export default function EditGameModal({
             title.trim() !== "" &&
             players.length >= 2 &&
             players.every((p) => p.name.trim() !== "") &&
-            isGameBalanced()
+            isGameBalanced() &&
+            !isSubmitting
         );
     };
 
@@ -203,6 +211,7 @@ export default function EditGameModal({
     };
 
     const handleClose = () => {
+        if (isSubmitting) return;
         setTitle('');
         setPlayers([]);
         setSearchTerms({});
@@ -212,20 +221,35 @@ export default function EditGameModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
-            <div className="bg-custom-background rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+            <div className="bg-custom-background rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-custom relative">
+                {/* Loading overlay */}
+                {isSubmitting && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-lg">
+                        <div className="bg-custom-background p-4 rounded-lg border border-custom flex items-center gap-3">
+                            <Loader2 className="animate-spin text-custom-primary" size={24} />
+                            <span className="text-custom-primary font-medium">Saving changes...</span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Modal Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">Edit Game</h3>
                     <button 
                         onClick={handleClose}
-                        className="text-custom-secondary hover:text-custom-primary text-2xl cursor-pointer"
+                        disabled={isSubmitting}
+                        className={`text-2xl transition-colors ${
+                            isSubmitting 
+                                ? 'text-gray-500 cursor-not-allowed' 
+                                : 'text-custom-secondary hover:text-custom-primary cursor-pointer'
+                        }`}
                     >
                         <X size={24} />
                     </button>
                 </div>
                 
                 {/* Game Title Input */}
-                <div className="mb-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                <div className={`mb-6 p-4 bg-custom-surface rounded-lg border border-custom ${isSubmitting ? 'opacity-50' : ''}`}>
                     <label className="block text-sm font-medium text-custom-primary mb-2">
                         Game Title
                     </label>
@@ -233,14 +257,15 @@ export default function EditGameModal({
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                        disabled={isSubmitting}
+                        className="w-full bg-custom-background border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="eg. Edwin's House - 69/69/69"
                         required
                     />
                 </div>
 
                 {/* Players Table */}
-                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
+                <div className={`bg-custom-background border border-custom rounded-lg overflow-hidden mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
                     <table className="w-full">
                         <thead className="bg-custom-surface">
                             <tr>
@@ -278,12 +303,13 @@ export default function EditGameModal({
                                             onBlur={() => {
                                                 setTimeout(() => setDropdownOpen(null), 150);
                                             }}
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
+                                            disabled={isSubmitting}
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="Enter or select name"
                                             id={`edit-player-input-${player.id}`}
                                         />
                                         
-                                        {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
+                                        {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && !isSubmitting && (
                                             <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
                                                 style={(() => {
                                                     const element = document.getElementById(`edit-player-input-${player.id}`);
@@ -320,7 +346,8 @@ export default function EditGameModal({
                                                     parseFloat(e.target.value) || 0
                                                 )
                                             }
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            disabled={isSubmitting}
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="0"
                                         />
                                     </td>
@@ -336,7 +363,8 @@ export default function EditGameModal({
                                                     parseFloat(e.target.value) || 0
                                                 )
                                             }
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
+                                            disabled={isSubmitting}
+                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="0"
                                         />
                                     </td>
@@ -356,7 +384,8 @@ export default function EditGameModal({
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             onClick={() => removePlayer(player.id)}
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
+                                            disabled={isSubmitting}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Delete player"
                                         >
                                             <Trash2 size={16} />
@@ -369,10 +398,11 @@ export default function EditGameModal({
                 </div>
 
                 {/* Add Player and Balance Summary */}
-                <div className="flex justify-between items-center mb-6">
+                <div className={`flex justify-between items-center mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
                     <button
                         onClick={addPlayer}
-                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
+                        disabled={isSubmitting}
+                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Plus size={16} />
                         Add Player
@@ -398,22 +428,28 @@ export default function EditGameModal({
                 </div>
 
                 {/* Modal Actions */}
-                <div className="flex justify-end gap-4">
+                <div className={`flex justify-end gap-4 ${isSubmitting ? 'opacity-50' : ''}`}>
                     <button
                         onClick={handleClose}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition-colors cursor-pointer"
+                        disabled={isSubmitting}
+                        className={`px-6 py-2 rounded transition-colors ${
+                            isSubmitting
+                                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-600 hover:bg-gray-500 text-white cursor-pointer'
+                        }`}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!canSave() || isSubmitting}
-                        className={`px-6 py-2 rounded transition-colors ${
+                        className={`px-6 py-2 rounded transition-colors flex items-center gap-2 ${
                             canSave() && !isSubmitting
                                 ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
                                 : "bg-gray-600 text-gray-400 cursor-not-allowed"
                         }`}
                     >
+                        {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                         {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>
                 </div>
