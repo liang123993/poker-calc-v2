@@ -52,13 +52,17 @@ export default function GroupSelector({
 
     return (
         <div className="flex items-center gap-2">
-            <span className="text-custom-secondary text-sm">{label}:</span>
+            <span className={`text-sm ${disabled ? 'text-gray-500' : 'text-custom-secondary'}`}>{label}:</span>
             <div className="relative">
                 <select
                     value={selectedGroupId || ''}
                     onChange={(e) => onGroupChange(e.target.value || null)}
                     disabled={disabled}
-                    className="appearance-none bg-custom-surface border border-custom rounded px-3 py-2 pr-8 text-custom-primary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+                    className={`appearance-none border rounded px-3 py-2 pr-8 focus:outline-none min-w-[200px] ${
+                        disabled 
+                            ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' 
+                            : 'bg-custom-surface border-custom text-custom-primary focus:border-custom-primary'
+                    }`}
                 >
                     {!selectedGroupId && (
                         <option value="" disabled>
@@ -80,12 +84,14 @@ export default function GroupSelector({
                 </select>
                 
                 <ChevronDown 
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-custom-secondary pointer-events-none" 
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none ${
+                        disabled ? 'text-gray-500' : 'text-custom-secondary'
+                    }`} 
                     size={16} 
                 />
             </div>
 
-            {selectedGroup && (
+            {selectedGroup && !disabled && (
                 <div className="flex items-center gap-1 text-custom-secondary text-sm">
                     <Users size={14} />
                     <span>{selectedGroup.stats.totalGames} games</span>
