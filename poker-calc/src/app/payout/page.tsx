@@ -6,7 +6,7 @@ import { Player, Transfer } from "@/types/player";
 import Header from "@/components/Header";
 import GroupSelector from "@/components/GroupSelector";
 import { useGroupSelection } from "@/hooks/useGroupSelection";
-import { Plus, Trash2, Calculator } from "lucide-react";
+import { Plus, Trash2, Calculator, Loader2 } from "lucide-react";
 import PayoutSummaryModal from "@/components/PayoutSummaryModal";
 import PasswordModal from "@/components/PasswordModal";
 
@@ -53,6 +53,8 @@ export default function PayoutPage() {
 
     // add player
     const addPlayer = () => {
+        if (isSubmitting) return; // Prevent adding players during submission
+        
         const newPlayer: Player = {
             id: Date.now().toString(),
             name: "",
@@ -65,6 +67,7 @@ export default function PayoutPage() {
 
     // remove player
     const removePlayer = (id: string) => {
+        if (isSubmitting) return; // Prevent removing players during submission
         setPlayers(players.filter((player) => player.id !== id));
     };
 
@@ -74,6 +77,8 @@ export default function PayoutPage() {
         field: keyof Player,
         value: string | number
     ) => {
+        if (isSubmitting) return; // Prevent updates during submission
+        
         setPlayers(
             players.map((player) => {
                 if (player.id == id) {
@@ -142,7 +147,8 @@ export default function PayoutPage() {
             selectedGroupId && // Must have a group selected
             players.length >= 2 &&
             players.every((p) => p.name.trim() !== "") &&
-            isGameBalanced()
+            isGameBalanced() &&
+            !isSubmitting // Can't calculate during submission
         );
     };
 
@@ -259,6 +265,7 @@ export default function PayoutPage() {
 
     // Handle name selection from dropdown
     const handleNameSelect = (playerId: string, name: string) => {
+        if (isSubmitting) return;
         updatePlayer(playerId, "name", name);
         setDropdownOpen(null);
         setSearchTerms({ ...searchTerms, [playerId]: "" });
@@ -266,6 +273,7 @@ export default function PayoutPage() {
 
     // Handle name input change
     const handleNameInputChange = (playerId: string, value: string) => {
+        if (isSubmitting) return;
         updatePlayer(playerId, "name", value);
         setSearchTerms({ ...searchTerms, [playerId]: value });
         if (value && getFilteredNames(playerId).length > 0) {
@@ -290,6 +298,7 @@ export default function PayoutPage() {
                         loading={groupsLoading}
                         label="Save to Group"
                         placeholder="Select a group to save games..."
+                        disabled={isSubmitting}
                     />
                 </div>
 
@@ -301,183 +310,200 @@ export default function PayoutPage() {
                         </p>
                     </div>
                 )}
-                
-                <div className="bg-custom-background border border-custom rounded-lg overflow-hidden mb-6">
-                    <table className="w-full">
-                        <thead className="bg-custom-surface">
-                            <tr>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
-                                    Player Name
-                                </th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
-                                    Buy-in
-                                </th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
-                                    Cashout
-                                </th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
-                                    Net Gain/Loss
-                                </th>
-                                <th className="text-center py-3 px-4 font-medium text-custom-primary">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
 
-                        <tbody>
-                            {players.map((player) => (
-                                <tr key={player.id} className="border-t border-custom">
-                                    <td className="py-3 px-4 relative">
-                                        <input
-                                            type="text"
-                                            value={player.name}
-                                            onChange={(e) => handleNameInputChange(player.id, e.target.value)}
-                                            onFocus={() => {
-                                                if (player.name && getFilteredNames(player.id).length > 0) {
-                                                    setDropdownOpen(player.id);
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                setTimeout(() => setDropdownOpen(null), 150);
-                                            }}
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary"
-                                            placeholder="Enter or select name"
-                                            id={`player-input-${player.id}`}
-                                        />
-                                        
-                                        {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && (
-                                            <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
-                                                style={(() => {
-                                                    const element = document.getElementById(`player-input-${player.id}`);
-                                                    if (!element) return {};
-                                                    const rect = element.getBoundingClientRect();
-                                                    return {
-                                                        top: `${rect.bottom + window.scrollY + 4}px`,
-                                                        left: `${rect.left + window.scrollX}px`,
-                                                        width: `${rect.width}px`
-                                                    };
-                                                })()}>
-                                                {getFilteredNames(player.id).map((name, index) => (
-                                                    <button
-                                                        key={index}
-                                                        type="button"
-                                                        onClick={() => handleNameSelect(player.id, name)}
-                                                        className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
-                                                    >
-                                                        {name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={player.buyIn || ""}
-                                            onChange={(e) =>
-                                                updatePlayer(
-                                                    player.id,
-                                                    "buyIn",
-                                                    parseFloat(e.target.value) || 0
-                                                )
-                                            }
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
-                                            placeholder="0"
-                                        />
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={player.cashOut || ""}
-                                            onChange={(e) =>
-                                                updatePlayer(
-                                                    player.id,
-                                                    "cashOut",
-                                                    parseFloat(e.target.value) || 0
-                                                )
-                                            }
-                                            className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary"
-                                            placeholder="0"
-                                        />
-                                    </td>
-                                    <td className="py-3 px-4 text-center">
-                                        <span
-                                            className={`font-semibold ${
-                                                player.net > 0
-                                                    ? "text-green-400"
-                                                    : player.net < 0
-                                                      ? "text-red-400"
-                                                      : "text-gray-400"
-                                            }`}
-                                        >
-                                            ${player.net.toFixed(2)}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4 text-center">
-                                        <button
-                                            onClick={() => removePlayer(player.id)}
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer"
-                                            title="Delete player"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="flex justify-between items-center mb-6">
-                    <button
-                        onClick={addPlayer}
-                        className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                        <Plus size={16} />
-                        Add Player
-                    </button>
-
-                    <div className="text-right">
-                        <div className="text-lg font-semibold mb-1">
-                            Total Net:{" "}
-                            <span
-                                className={`${
-                                    getTotalNet() > 0
-                                        ? "text-red-400"
-                                        : getTotalNet() < 0
-                                          ? "text-red-400"
-                                          : "text-green-400"
-                                }`}
-                            >
-                                {formatCurrency(getTotalNet())}
-                            </span>
+                {/* Loading overlay for the entire form */}
+                <div className="relative">
+                    {isSubmitting && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-lg">
+                            <div className="bg-custom-background p-4 rounded-lg border border-custom flex items-center gap-3">
+                                <Loader2 className="animate-spin text-custom-primary" size={24} />
+                                <span className="text-custom-primary font-medium">Processing game...</span>
+                            </div>
                         </div>
-                        <div className="text-sm">{getBalanceMessage()}</div>
-                    </div>
-                </div>
+                    )}
+                    
+                    <div className={`bg-custom-background border border-custom rounded-lg overflow-hidden mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
+                        <table className="w-full">
+                            <thead className="bg-custom-surface">
+                                <tr>
+                                    <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                        Player Name
+                                    </th>
+                                    <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                        Buy-in
+                                    </th>
+                                    <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                        Cashout
+                                    </th>
+                                    <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                        Net Gain/Loss
+                                    </th>
+                                    <th className="text-center py-3 px-4 font-medium text-custom-primary">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
 
-                <div className="flex justify-center">
-                    <button
-                        onClick={handleCalculate}
-                        disabled={!canCalculate() || isSubmitting}
-                        className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
-                            canCalculate() && !isSubmitting
-                                ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
-                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                        }`}
-                    >
-                        <Calculator size={20} />
-                        {isSubmitting ? "Saving..." : "Calculate"}
-                    </button>
-                </div>
-
-                {selectedGroup && (
-                    <div className="mt-4 text-center text-custom-secondary text-sm">
-                        Game will be saved to: <span className="text-custom-primary font-medium">{selectedGroup.name}</span>
+                            <tbody>
+                                {players.map((player) => (
+                                    <tr key={player.id} className="border-t border-custom">
+                                        <td className="py-3 px-4 relative">
+                                            <input
+                                                type="text"
+                                                value={player.name}
+                                                onChange={(e) => handleNameInputChange(player.id, e.target.value)}
+                                                onFocus={() => {
+                                                    if (player.name && getFilteredNames(player.id).length > 0) {
+                                                        setDropdownOpen(player.id);
+                                                    }
+                                                }}
+                                                onBlur={() => {
+                                                    setTimeout(() => setDropdownOpen(null), 150);
+                                                }}
+                                                disabled={isSubmitting}
+                                                className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                placeholder="Enter or select name"
+                                                id={`player-input-${player.id}`}
+                                            />
+                                            
+                                            {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && !isSubmitting && (
+                                                <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                                    style={(() => {
+                                                        const element = document.getElementById(`player-input-${player.id}`);
+                                                        if (!element) return {};
+                                                        const rect = element.getBoundingClientRect();
+                                                        return {
+                                                            top: `${rect.bottom + window.scrollY + 4}px`,
+                                                            left: `${rect.left + window.scrollX}px`,
+                                                            width: `${rect.width}px`
+                                                        };
+                                                    })()}>
+                                                    {getFilteredNames(player.id).map((name, index) => (
+                                                        <button
+                                                            key={index}
+                                                            type="button"
+                                                            onClick={() => handleNameSelect(player.id, name)}
+                                                            className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
+                                                        >
+                                                            {name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={player.buyIn || ""}
+                                                onChange={(e) =>
+                                                    updatePlayer(
+                                                        player.id,
+                                                        "buyIn",
+                                                        parseFloat(e.target.value) || 0
+                                                    )
+                                                }
+                                                disabled={isSubmitting}
+                                                className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                placeholder="0"
+                                            />
+                                        </td>
+                                        <td className="py-3 px-4">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={player.cashOut || ""}
+                                                onChange={(e) =>
+                                                    updatePlayer(
+                                                        player.id,
+                                                        "cashOut",
+                                                        parseFloat(e.target.value) || 0
+                                                    )
+                                                }
+                                                disabled={isSubmitting}
+                                                className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-2 text-custom-primary text-center focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                placeholder="0"
+                                            />
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                            <span
+                                                className={`font-semibold ${
+                                                    player.net > 0
+                                                        ? "text-green-400"
+                                                        : player.net < 0
+                                                          ? "text-red-400"
+                                                          : "text-gray-400"
+                                                }`}
+                                            >
+                                                ${player.net.toFixed(2)}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                            <button
+                                                onClick={() => removePlayer(player.id)}
+                                                disabled={isSubmitting}
+                                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title="Delete player"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+
+                    <div className={`flex justify-between items-center mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
+                        <button
+                            onClick={addPlayer}
+                            disabled={isSubmitting}
+                            className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Plus size={16} />
+                            Add Player
+                        </button>
+
+                        <div className="text-right">
+                            <div className="text-lg font-semibold mb-1">
+                                Total Net:{" "}
+                                <span
+                                    className={`${
+                                        getTotalNet() > 0
+                                            ? "text-red-400"
+                                            : getTotalNet() < 0
+                                              ? "text-red-400"
+                                              : "text-green-400"
+                                    }`}
+                                >
+                                    {formatCurrency(getTotalNet())}
+                                </span>
+                            </div>
+                            <div className="text-sm">{getBalanceMessage()}</div>
+                        </div>
+                    </div>
+
+                    <div className={`flex justify-center ${isSubmitting ? 'opacity-50' : ''}`}>
+                        <button
+                            onClick={handleCalculate}
+                            disabled={!canCalculate() || isSubmitting}
+                            className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
+                                canCalculate() && !isSubmitting
+                                    ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
+                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                            }`}
+                        >
+                            <Calculator size={20} />
+                            {isSubmitting ? "Processing..." : "Calculate"}
+                        </button>
+                    </div>
+
+                    {selectedGroup && (
+                        <div className="mt-4 text-center text-custom-secondary text-sm">
+                            Game will be saved to: <span className="text-custom-primary font-medium">{selectedGroup.name}</span>
+                        </div>
+                    )}
+                </div>
             </main>
 
             <PayoutSummaryModal
@@ -485,6 +511,7 @@ export default function PayoutPage() {
                 onClose={() => setShowSummary(false)}
                 players={players}
                 selectedGroup={selectedGroup}
+                isSubmitting={isSubmitting}
                 onSubmit={(gameTitle) => {
                     setPendingGameTitle(gameTitle);
                     setShowPasswordModal(true);
