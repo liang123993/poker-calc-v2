@@ -286,8 +286,8 @@ export default function PayoutPage() {
     return (
         <div className="min-h-screen bg-custom-background text-custom-primary">
             <Header currentPage="payout" />
-            <main className="px-6 py-8">
-                <div className="flex justify-between items-center mb-6">
+            <main className="px-4 py-6 sm:px-6 sm:py-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
                     <h2 className="text-2xl font-bold text-custom-primary">
                         Payout Entry
                     </h2>
@@ -322,7 +322,147 @@ export default function PayoutPage() {
                         </div>
                     )}
                     
-                    <div className={`bg-custom-background border border-custom rounded-lg overflow-hidden mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
+                    {/* Mobile: stacked player cards */}
+                    <div className={`sm:hidden mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
+                        {players.length === 0 ? (
+                            <div className="bg-custom-background border border-dashed border-custom rounded-lg p-8 text-center text-custom-secondary">
+                                No players yet. Tap “Add Player” below to get started.
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {players.map((player, index) => (
+                                    <div
+                                        key={player.id}
+                                        className={`bg-custom-background border rounded-lg p-2.5 space-y-2 ${
+                                            index % 2 === 0 ? "border-[#8C4A4C]" : "border-[#8C6F3C]"
+                                        }`}
+                                    >
+                                        {/* Row 1: name + delete */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex-1 min-w-0">
+                                                <input
+                                                    type="text"
+                                                    value={player.name}
+                                                    onChange={(e) => handleNameInputChange(player.id, e.target.value)}
+                                                    onFocus={() => {
+                                                        if (player.name && getFilteredNames(player.id).length > 0) {
+                                                            setDropdownOpen(player.id);
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        setTimeout(() => setDropdownOpen(null), 150);
+                                                    }}
+                                                    disabled={isSubmitting}
+                                                    className="w-full bg-custom-surface-alt border border-custom rounded px-3 py-1.5 text-sm text-custom-primary placeholder-custom-secondary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    placeholder="Player name"
+                                                    id={`player-input-mobile-${player.id}`}
+                                                />
+
+                                                {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && !isSubmitting && (
+                                                    <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                                        style={(() => {
+                                                            const element = document.getElementById(`player-input-mobile-${player.id}`);
+                                                            if (!element) return {};
+                                                            const rect = element.getBoundingClientRect();
+                                                            return {
+                                                                top: `${rect.bottom + window.scrollY + 4}px`,
+                                                                left: `${rect.left + window.scrollX}px`,
+                                                                width: `${rect.width}px`
+                                                            };
+                                                        })()}>
+                                                        {getFilteredNames(player.id).map((name, index) => (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => handleNameSelect(player.id, name)}
+                                                                className="w-full px-3 py-2 text-left text-custom-primary hover:bg-custom-surface focus:bg-custom-surface focus:outline-none transition-colors cursor-pointer"
+                                                            >
+                                                                {name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => removePlayer(player.id)}
+                                                disabled={isSubmitting}
+                                                className="shrink-0 text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1.5 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                aria-label="Delete player"
+                                                title="Delete player"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+
+                                        {/* Row 2: buy-in, cash-out, net */}
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <label className="block text-xs text-custom-secondary mb-0.5">
+                                                    Buy-in
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    step="0.01"
+                                                    value={player.buyIn || ""}
+                                                    onChange={(e) =>
+                                                        updatePlayer(
+                                                            player.id,
+                                                            "buyIn",
+                                                            parseFloat(e.target.value) || 0
+                                                        )
+                                                    }
+                                                    disabled={isSubmitting}
+                                                    className="w-full bg-custom-surface-alt border border-custom rounded px-2 py-1.5 text-sm text-custom-primary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <label className="block text-xs text-custom-secondary mb-0.5">
+                                                    Cash-out
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    step="0.01"
+                                                    value={player.cashOut || ""}
+                                                    onChange={(e) =>
+                                                        updatePlayer(
+                                                            player.id,
+                                                            "cashOut",
+                                                            parseFloat(e.target.value) || 0
+                                                        )
+                                                    }
+                                                    disabled={isSubmitting}
+                                                    className="w-full bg-custom-surface-alt border border-custom rounded px-2 py-1.5 text-sm text-custom-primary focus:outline-none focus:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div className="shrink-0 w-16">
+                                                <label className="block text-xs text-custom-secondary mb-0.5 text-right">
+                                                    Net
+                                                </label>
+                                                <span
+                                                    className={`block text-right text-sm font-semibold whitespace-nowrap py-1.5 ${
+                                                        player.net > 0
+                                                            ? "text-green-400"
+                                                            : player.net < 0
+                                                              ? "text-red-400"
+                                                              : "text-gray-400"
+                                                    }`}
+                                                >
+                                                    {player.net >= 0 ? "+" : "-"}${Math.abs(player.net).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Desktop: original table (unchanged from ≥640px) */}
+                    <div className={`hidden sm:block bg-custom-background border border-custom rounded-lg overflow-hidden mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
                         <table className="w-full">
                             <thead className="bg-custom-surface">
                                 <tr>
@@ -365,7 +505,7 @@ export default function PayoutPage() {
                                                 placeholder="Enter or select name"
                                                 id={`player-input-${player.id}`}
                                             />
-                                            
+
                                             {dropdownOpen === player.id && getFilteredNames(player.id).length > 0 && !isSubmitting && (
                                                 <div className="fixed z-50 bg-custom-surface-alt border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto"
                                                     style={(() => {
@@ -454,17 +594,17 @@ export default function PayoutPage() {
                         </table>
                     </div>
 
-                    <div className={`flex justify-between items-center mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
+                    <div className={`flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6 ${isSubmitting ? 'opacity-50' : ''}`}>
                         <button
                             onClick={addPlayer}
                             disabled={isSubmitting}
-                            className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-custom-surface hover:bg-custom-border text-custom-primary px-4 py-2 rounded flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus size={16} />
                             Add Player
                         </button>
 
-                        <div className="text-right">
+                        <div className="text-left sm:text-right">
                             <div className="text-lg font-semibold mb-1">
                                 Total Net:{" "}
                                 <span
@@ -487,7 +627,7 @@ export default function PayoutPage() {
                         <button
                             onClick={handleCalculate}
                             disabled={!canCalculate() || isSubmitting}
-                            className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${
+                            className={`flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 rounded-lg font-semibold transition-colors ${
                                 canCalculate() && !isSubmitting
                                     ? "bg-custom-primary hover:opacity-80 text-white cursor-pointer"
                                     : "bg-gray-600 text-gray-400 cursor-not-allowed"
