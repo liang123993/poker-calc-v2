@@ -121,7 +121,7 @@ function ConfirmDeleteModal({ isOpen, onClose, onConfirm, gameName }: ConfirmDel
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
             <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
                 <h3 className="text-lg font-semibold mb-4 text-custom-primary">Confirm Delete</h3>
                 <p className="text-custom-secondary mb-6">
