@@ -51,14 +51,14 @@ export default function GroupSelector({
     }
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 w-full sm:w-auto">
             <span className={`text-sm ${disabled ? 'text-gray-500' : 'text-custom-secondary'}`}>{label}:</span>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
                 <select
                     value={selectedGroupId || ''}
                     onChange={(e) => onGroupChange(e.target.value || null)}
                     disabled={disabled}
-                    className={`appearance-none border rounded px-3 py-2 pr-8 focus:outline-none min-w-[200px] ${
+                    className={`appearance-none border rounded px-3 py-2 pr-8 focus:outline-none w-full sm:min-w-[200px] ${
                         disabled 
                             ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' 
                             : 'bg-custom-surface border-custom text-custom-primary focus:border-custom-primary'

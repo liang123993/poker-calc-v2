@@ -97,7 +97,7 @@ export default function PayoutSummaryModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-custom-background rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
+            <div className="bg-custom-background rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-custom">
                 {/* Modal Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-custom-primary">Payout Summary</h3>
@@ -149,8 +149,8 @@ export default function PayoutSummaryModal({
                     />
                 </div>
 
-                {/* Results Table */}
-                <div className="overflow-x-auto mb-6">
+                {/* Results — table on desktop, cards on mobile */}
+                <div className="hidden sm:block overflow-x-auto mb-6">
                     <table className="w-full">
                         <thead className="bg-custom-surface-alt">
                             <tr>
@@ -162,7 +162,7 @@ export default function PayoutSummaryModal({
                             </tr>
                         </thead>
                         <tbody>
-                            {players
+                            {[...players]
                                 .sort((a, b) => b.net - a.net)
                                 .map((player, index) => (
                                     <tr key={player.id} className={`border-t border-custom ${index % 2 === 1 ? 'bg-custom-surface-alt' : ''}`}>
@@ -171,8 +171,8 @@ export default function PayoutSummaryModal({
                                         <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.buyIn)}</td>
                                         <td className="py-3 px-4 text-center text-custom-primary">{formatCurrency(player.cashOut)}</td>
                                         <td className={`py-3 px-4 text-center font-semibold ${
-                                            player.net > 0 ? 'text-green-400' : 
-                                            player.net < 0 ? 'text-red-400' : 
+                                            player.net > 0 ? 'text-green-400' :
+                                            player.net < 0 ? 'text-red-400' :
                                             'text-gray-400'
                                         }`}>
                                             {player.net >= 0 ? '+' : '-'}{formatCurrency(player.net)}
@@ -181,6 +181,32 @@ export default function PayoutSummaryModal({
                                 ))}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="sm:hidden space-y-2 mb-6">
+                    {[...players]
+                        .sort((a, b) => b.net - a.net)
+                        .map((player, index) => (
+                            <div key={player.id} className="bg-custom-surface-alt border border-custom rounded-lg p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-custom-primary font-medium">
+                                        <span className="text-custom-secondary mr-1">#{index + 1}</span>
+                                        {player.name}
+                                    </span>
+                                    <span className={`font-semibold ${
+                                        player.net > 0 ? 'text-green-400' :
+                                        player.net < 0 ? 'text-red-400' :
+                                        'text-gray-400'
+                                    }`}>
+                                        {player.net >= 0 ? '+' : '-'}{formatCurrency(player.net)}
+                                    </span>
+                                </div>
+                                <div className="flex gap-4 text-sm text-custom-secondary">
+                                    <span>Buy-in: <span className="text-custom-primary">{formatCurrency(player.buyIn)}</span></span>
+                                    <span>Cash-out: <span className="text-custom-primary">{formatCurrency(player.cashOut)}</span></span>
+                                </div>
+                            </div>
+                        ))}
                 </div>
 
                 {/* Payment Instructions */}
