@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+In Game History, select **Show Details** for a completed game to review its player results and any payment instructions saved with the game.
+
 ## Getting Started
 
 First, run the development server:

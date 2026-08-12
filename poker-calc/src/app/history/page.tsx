@@ -1,7 +1,7 @@
 // src/app/history/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Header from "@/components/Header";
 import GroupSelector from "@/components/GroupSelector";
 import { useGroupSelection } from "@/hooks/useGroupSelection";
@@ -145,7 +145,7 @@ function ConfirmDeleteModal({ isOpen, onClose, onConfirm, gameName }: ConfirmDel
             <div className="bg-custom-surface rounded-lg p-6 max-w-md w-full border border-custom">
                 <h3 className="text-lg font-semibold mb-4 text-custom-primary">Confirm Delete</h3>
                 <p className="text-custom-secondary mb-6">
-                    Are you sure you want to delete the game "{gameName}"? This action cannot be undone.
+                    Are you sure you want to delete the game &quot;{gameName}&quot;? This action cannot be undone.
                 </p>
                 <div className="flex justify-end gap-2">
                     <button
@@ -187,13 +187,7 @@ export default function GameHistoryPage() {
         loading: groupsLoading 
     } = useGroupSelection('history-selected-group');
 
-    useEffect(() => {
-        if (selectedGroupId) {
-            fetchGames();
-        }
-    }, [selectedGroupId]);
-
-    const fetchGames = async () => {
+    const fetchGames = useCallback(async () => {
         if (!selectedGroupId) return;
         
         try {
@@ -233,7 +227,11 @@ export default function GameHistoryPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedGroupId]);
+
+    useEffect(() => {
+        fetchGames();
+    }, [fetchGames]);
 
     const filteredGames = games.filter(game => {
         if (!searchTerm) return true;
@@ -431,7 +429,7 @@ export default function GameHistoryPage() {
                                     </button>
                                 ) : selectedGroup ? (
                                     <div className="text-custom-secondary">
-                                        No games in "{selectedGroup.name}" yet. <a href="/payout" className="text-custom-primary underline">Add some games!</a>
+                                        No games in &quot;{selectedGroup.name}&quot; yet. <a href="/payout" className="text-custom-primary underline">Add some games!</a>
                                     </div>
                                 ) : null}
                             </div>
@@ -488,7 +486,7 @@ export default function GameHistoryPage() {
 
                                 <div className="mt-6 text-center text-custom-secondary text-sm">
                                     Showing {filteredGames.length} of {games.length} games
-                                    {selectedGroup && <span> in "{selectedGroup.name}"</span>}
+                                    {selectedGroup && <span> in &quot;{selectedGroup.name}&quot;</span>}
                                 </div>
                             </>
                         )}
