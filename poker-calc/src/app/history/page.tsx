@@ -93,6 +93,26 @@ function GameDetailsModal({ isOpen, onClose, game, onEdit, onDelete }: GameDetai
                     </table>
                 </div>
 
+                {game.transfers.length > 0 && (
+                    <div className="mt-6 p-4 bg-custom-surface rounded-lg border border-custom">
+                        <h4 className="text-lg font-semibold text-custom-primary mb-3">Payment Instructions</h4>
+                        <div className="space-y-2">
+                            {game.transfers.map((transfer, index) => (
+                                <div key={index} className="flex items-center justify-between bg-custom-background p-3 rounded border border-custom">
+                                    <span className="text-custom-primary">
+                                        <span className="font-semibold text-red-400">{transfer.from}</span>
+                                        {' pays '}
+                                        <span className="font-semibold text-green-400">{transfer.to}</span>
+                                    </span>
+                                    <span className="font-bold text-custom-primary text-lg">
+                                        {formatCurrency(transfer.amount)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="mt-6 flex justify-between items-center">
                     <div className="text-custom-secondary">
                         Total Amount: <span className="text-custom-primary font-semibold">{formatCurrency(game.totalAmount)}</span>
