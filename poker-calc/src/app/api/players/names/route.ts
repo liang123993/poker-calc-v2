@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import Player from "@/models/Player";
 
+// Reads query params, so it can never be prerendered
+export const dynamic = 'force-dynamic';
+
 // GET /api/players/names → fetch unique player names for dropdown (with optional group filtering)
 export async function GET(req: NextRequest) {
     try {

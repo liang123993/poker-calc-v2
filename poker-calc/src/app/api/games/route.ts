@@ -5,6 +5,9 @@ import Game from "@/models/Game";
 import Player from "@/models/Player";
 import Leaderboard from "@/models/Leaderboard";
 
+// Reads query params, so it can never be prerendered
+export const dynamic = 'force-dynamic';
+
 // GET, fetch all games (with optional group filtering)
 export async function GET(req: NextRequest) {
     try {

@@ -4,6 +4,9 @@ import { dbConnect } from "@/lib/mongoose";
 import Group from "@/models/Group";
 import Game from "@/models/Game";
 
+// Reads query params, so it can never be prerendered
+export const dynamic = 'force-dynamic';
+
 // GET /api/groups → fetch all groups with stats
 export async function GET(req: NextRequest) {
     try {

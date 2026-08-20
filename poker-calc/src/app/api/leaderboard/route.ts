@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import Leaderboard from "@/models/Leaderboard";
 
+// Reads query params, so it can never be prerendered
+export const dynamic = 'force-dynamic';
+
 // GET /api/leaderboard → fetch leaderboard data (with optional group filtering)
 export async function GET(req: NextRequest) {
     try {

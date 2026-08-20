@@ -4,6 +4,9 @@ import { dbConnect } from "@/lib/mongoose";
 import Player from "@/models/Player";
 import "@/models/Game"; // register Game model for populate
 
+// Reads query params, so it can never be prerendered
+export const dynamic = 'force-dynamic';
+
 // GET /api/players/pnl?groupId=X&name=Y → cumulative profit/loss per game for one player
 export async function GET(req: NextRequest) {
     try {
