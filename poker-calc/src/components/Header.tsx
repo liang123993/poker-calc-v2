@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface HeaderProps {
-  currentPage: 'payout' | 'leaderboard' | 'history' | 'groups';
+  currentPage: 'payout' | 'leaderboard' | 'history' | 'groups' | 'pnl';
 }
 
 export default function Header({ currentPage }: HeaderProps) {
@@ -24,6 +24,9 @@ export default function Header({ currentPage }: HeaderProps) {
           </a>
           <a href="/history" className={getLinkClass('history')}>
             Game History
+          </a>
+          <a href="/pnl" className={getLinkClass('pnl')}>
+            P/L Graph
           </a>
           <a href="/groups" className={getLinkClass('groups')}>
             Groups
